@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<rect width="1200" height="800" fill="#191D21"/>
+<rect x="70" y="64" width="1060" height="672" rx="24" fill="#20252A" stroke="#343B43" stroke-width="4"/>
+<rect x="70" y="64" width="1060" height="72" rx="24" fill="#272D33"/>
+<rect x="70" y="112" width="1060" height="24" fill="#272D33"/>
+<circle cx="112" cy="100" r="9" fill="#59636D"/><circle cx="143" cy="100" r="9" fill="#59636D"/><circle cx="174" cy="100" r="9" fill="#6ED7A4"/>
+<text x="1000" y="105" font-size="22" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" fill="#929CA6">QUARTZLAB</text>
+<rect x="270" y="300" width="130" height="110" rx="12" fill="#55D6F6"/><rect x="440" y="300" width="130" height="110" rx="12" fill="#8A78FF"/><rect x="610" y="300" width="130" height="110" rx="12" fill="#F3BD67"/><rect x="270" y="460" width="130" height="110" rx="12" fill="#6ED7A4"/><rect x="440" y="460" width="130" height="110" rx="12" fill="#F27F7F"/><rect x="610" y="460" width="130" height="110" rx="12" fill="#5A9CFF"/><path d="M790 320h160M790 400h120M790 480h150" stroke="#68727C" stroke-width="18" stroke-linecap="round"/><path d="m820 555 55 55 105-120" fill="none" stroke="#6ED7A4" stroke-width="22"/>
+<rect x="96" y="665" width="1008" height="1" fill="#3A424B"/>
+<text x="105" y="704" font-size="28" font-family="Arial,sans-serif" font-weight="700" fill="#F0F3F5">Material Dedupe</text>
+<text x="1095" y="704" font-size="20" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" letter-spacing="2" fill="#6ED7A4">MATERIAL CLEANUP</text>
+</svg>

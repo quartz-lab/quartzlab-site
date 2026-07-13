@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<rect width="1200" height="800" fill="#191D21"/>
+<rect x="70" y="64" width="1060" height="672" rx="24" fill="#20252A" stroke="#343B43" stroke-width="4"/>
+<rect x="70" y="64" width="1060" height="72" rx="24" fill="#272D33"/>
+<rect x="70" y="112" width="1060" height="24" fill="#272D33"/>
+<circle cx="112" cy="100" r="9" fill="#59636D"/><circle cx="143" cy="100" r="9" fill="#59636D"/><circle cx="174" cy="100" r="9" fill="#5A9CFF"/>
+<text x="1000" y="105" font-size="22" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" fill="#929CA6">QUARTZLAB</text>
+<rect x="245" y="275" width="325" height="330" rx="14" fill="#242A30" stroke="#4B5560" stroke-width="10"/><rect x="630" y="275" width="325" height="330" rx="14" fill="#242A30" stroke="#5A9CFF" stroke-width="10"/><path d="M305 345h190M305 420h145M305 495h200M690 345h190M690 420h115M690 495h205" stroke="#68727C" stroke-width="18" stroke-linecap="round"/><path d="M585 440h30" stroke="#5A9CFF" stroke-width="18"/><path d="m853 548 42 42 76-90" fill="none" stroke="#5A9CFF" stroke-width="19"/>
+<rect x="96" y="665" width="1008" height="1" fill="#3A424B"/>
+<text x="105" y="704" font-size="28" font-family="Arial,sans-serif" font-weight="700" fill="#F0F3F5">Prefab Diff</text>
+<text x="1095" y="704" font-size="20" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" letter-spacing="2" fill="#5A9CFF">PREFAB COMPARISON</text>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<rect width="1200" height="800" fill="#191D21"/>
+<rect x="70" y="64" width="1060" height="672" rx="24" fill="#20252A" stroke="#343B43" stroke-width="4"/>
+<rect x="70" y="64" width="1060" height="72" rx="24" fill="#272D33"/>
+<rect x="70" y="112" width="1060" height="24" fill="#272D33"/>
+<circle cx="112" cy="100" r="9" fill="#59636D"/><circle cx="143" cy="100" r="9" fill="#59636D"/><circle cx="174" cy="100" r="9" fill="#F27F7F"/>
+<text x="1000" y="105" font-size="22" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" fill="#929CA6">QUARTZLAB</text>
+<path d="M300 360 L520 270" stroke="#56606A" stroke-width="12"/><path d="M300 360 L520 500" stroke="#56606A" stroke-width="12"/><path d="M520 270 L790 355" stroke="#56606A" stroke-width="12"/><path d="M520 500 L790 355" stroke="#56606A" stroke-width="12"/><path d="M790 355 L930 510" stroke="#56606A" stroke-width="12"/><circle cx="300" cy="360" r="34" fill="#252B31" stroke="#F27F7F" stroke-width="12"/><circle cx="520" cy="270" r="34" fill="#252B31" stroke="#F27F7F" stroke-width="12"/><circle cx="520" cy="500" r="34" fill="#252B31" stroke="#F27F7F" stroke-width="12"/><circle cx="790" cy="355" r="34" fill="#252B31" stroke="#F27F7F" stroke-width="12"/><circle cx="930" cy="510" r="34" fill="#F27F7F" stroke="#F27F7F" stroke-width="12"/><path d="m907 487 46 46m0-46-46 46" stroke="#111315" stroke-width="12"/>
+<rect x="96" y="665" width="1008" height="1" fill="#3A424B"/>
+<text x="105" y="704" font-size="28" font-family="Arial,sans-serif" font-weight="700" fill="#F0F3F5">RefTrace</text>
+<text x="1095" y="704" font-size="20" text-anchor="end" font-family="Arial,sans-serif" font-weight="700" letter-spacing="2" fill="#F27F7F">REFERENCE SCANNER</text>
+</svg>

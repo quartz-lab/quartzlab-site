@@ -1,0 +1,14 @@
+{
+  "generatedAt": null,
+  "plugins": {
+    "clipswitch": 0,
+    "textshift-tmp": 0,
+    "buildlens": 0,
+    "reftrace": 0,
+    "material-dedupe": 0,
+    "prefab-diff": 0,
+    "import-pilot": 0,
+    "scene-sweep": 0,
+    "collider-fit": 0
+  }
+}

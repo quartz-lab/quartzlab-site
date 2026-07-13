@@ -1,0 +1,4 @@
+/en/plugins/*  /plugin.html  200
+/ru/plugins/*  /plugin.html  200
+/en/docs/*     /docs.html    200
+/ru/docs/*     /docs.html    200
