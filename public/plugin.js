@@ -1,8 +1,14 @@
 'use strict';
 
 const Q = window.QuartzLab;
-const lang = Q.languageFromPath();
-const slug = Q.slugFromPath('plugins');
+const params = new URLSearchParams(location.search);
+const lang =
+  params.get('lang') ||
+  Q.languageFromPath();
+
+const slug =
+  params.get('slug') ||
+  Q.slugFromPath('plugins');
 const t = Q.strings[lang];
 const root = document.querySelector('#pluginPage');
 

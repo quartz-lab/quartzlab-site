@@ -1,6 +1,18 @@
 'use strict';
 
-const Q=window.QuartzLab,lang=Q.languageFromPath(),slug=Q.slugFromPath('docs'),t=Q.strings[lang],root=document.querySelector('#docsPage');
+const Q = window.QuartzLab;
+const params = new URLSearchParams(location.search);
+
+const lang =
+  params.get('lang') ||
+  Q.languageFromPath();
+
+const slug =
+  params.get('slug') ||
+  Q.slugFromPath('docs');
+
+const t = Q.strings[lang];
+const root = document.querySelector('#docsPage');
 
 function mediaBlock(block,plugin){
   if(!block.media?.length)return '';
