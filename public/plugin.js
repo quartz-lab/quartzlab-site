@@ -2,6 +2,7 @@
 
 const Q = window.QuartzLab;
 const params = new URLSearchParams(location.search);
+
 const lang =
   params.get('lang') ||
   Q.languageFromPath();
@@ -9,6 +10,7 @@ const lang =
 const slug =
   params.get('slug') ||
   Q.slugFromPath('plugins');
+
 const t = Q.strings[lang];
 const root = document.querySelector('#pluginPage');
 

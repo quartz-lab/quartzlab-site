@@ -33,8 +33,10 @@ window.QuartzLab = (() => {
     return index >= 0 && parts[index + 1] ? decodeURIComponent(parts[index + 1]) : new URLSearchParams(location.search).get('slug') || '';
   };
   const localize = (plugin, lang) => ({...plugin, ...plugin.i18n[lang], categoryLabel: plugin.category[lang]});
-  const pluginUrl = (lang, slug) => `/${lang}/plugins/${encodeURIComponent(slug)}/`;
-  const docsUrl = (lang, slug) => `/${lang}/docs/${encodeURIComponent(slug)}/`;
+  const pluginUrl = (lang, slug) =>
+  `/plugin.html?lang=${encodeURIComponent(lang)}&slug=${encodeURIComponent(slug)}`;
+  const docsUrl = (lang, slug) =>
+  `/docs.html?lang=${encodeURIComponent(lang)}&slug=${encodeURIComponent(slug)}`;
   const formatNumber = (value, lang) => new Intl.NumberFormat(lang === 'ru' ? 'ru-RU' : 'en-US').format(Number(value) || 0);
 
   function setLanguagePreference(lang) {

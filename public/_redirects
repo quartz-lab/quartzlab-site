@@ -1,11 +1,11 @@
-/ru/plugins/:slug/  /plugin.html?lang=ru&slug=:slug  200
-/ru/plugins/:slug   /plugin.html?lang=ru&slug=:slug  200
+/ru/plugins/:slug/  /plugin.html?lang=ru&slug=:slug  302
+/ru/plugins/:slug   /plugin.html?lang=ru&slug=:slug  302
 
-/en/plugins/:slug/  /plugin.html?lang=en&slug=:slug  200
-/en/plugins/:slug   /plugin.html?lang=en&slug=:slug  200
+/en/plugins/:slug/  /plugin.html?lang=en&slug=:slug  302
+/en/plugins/:slug   /plugin.html?lang=en&slug=:slug  302
 
-/ru/docs/:slug/     /docs.html?lang=ru&slug=:slug    200
-/ru/docs/:slug      /docs.html?lang=ru&slug=:slug    200
+/ru/docs/:slug/     /docs.html?lang=ru&slug=:slug    302
+/ru/docs/:slug      /docs.html?lang=ru&slug=:slug    302
 
-/en/docs/:slug/     /docs.html?lang=en&slug=:slug    200
-/en/docs/:slug      /docs.html?lang=en&slug=:slug    200
+/en/docs/:slug/     /docs.html?lang=en&slug=:slug    302
+/en/docs/:slug      /docs.html?lang=en&slug=:slug    302
