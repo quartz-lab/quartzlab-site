@@ -1,0 +1,49 @@
+name: Sync plugin release data
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "catalog/plugins.config.json"
+      - "scripts/**"
+      - ".github/workflows/sync-plugin-releases.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-plugin-release-data
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sync latest published releases
+        run: node scripts/sync-plugins.mjs
+
+      - name: Run tests
+        run: node --test
+
+      - name: Commit synced release data
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- public/data public/en/plugins public/ru/plugins public/en/docs public/ru/docs public/plugin-docs; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- public/data public/en/plugins public/ru/plugins public/en/docs public/ru/docs public/plugin-docs
+          git commit -m "chore: sync plugin release data"
+          git push

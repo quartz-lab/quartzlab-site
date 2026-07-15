@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en" data-route-language="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ClipSwitch documentation — QuartzLab">
+  <title>ClipSwitch Documentation — QuartzLab</title>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="./__doc-inline-style-1.css">
+  <link rel="stylesheet" href="/docs-theme.css">
+  <script src="./__route-language.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top">Quartz<span>Lab</span></a>
+      <span class="product-title">ClipSwitch Documentation</span>
+      <span class="spacer"></span>
+      <div class="language-switch" aria-label="Documentation language">
+        <button type="button" data-language="ru" aria-pressed="true">RU</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout" id="top">
+    <aside class="sidebar">
+      <div data-toc-language="ru">
+        <p class="sidebar-title">Содержание</p>
+        <nav>
+          <ul class="toc">
+            <li><a href="#ru-overview">Обзор</a></li>
+            <li><a href="#ru-quick-start">Быстрый старт</a></li>
+            <li><a href="#ru-library">Библиотека</a></li>
+            <li><a href="#ru-picker">Выбор клипов</a></li>
+            <li><a href="#ru-editor">Аудиоредактор</a></li>
+            <li><a href="#ru-safety">История и безопасность</a></li>
+            <li><a href="#ru-formats">Форматы</a></li>
+            <li><a href="#ru-shortcuts">Управление</a></li>
+            <li><a href="#ru-limitations">Ограничения</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div data-toc-language="en" hidden>
+        <p class="sidebar-title">Contents</p>
+        <nav>
+          <ul class="toc">
+            <li><a href="#en-overview">Overview</a></li>
+            <li><a href="#en-quick-start">Quick start</a></li>
+            <li><a href="#en-library">Library</a></li>
+            <li><a href="#en-picker">Clip picker</a></li>
+            <li><a href="#en-editor">Audio Editor</a></li>
+            <li><a href="#en-safety">History and safety</a></li>
+            <li><a href="#en-formats">Formats</a></li>
+            <li><a href="#en-shortcuts">Controls</a></li>
+            <li><a href="#en-limitations">Limitations</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="sidebar-meta">
+        <p><strong>ClipSwitch</strong></p>
+        <p>QuartzLab</p>
+        <p>Unity 2022.3+</p>
+        <p>Offline HTML</p>
+      </div>
+    </aside>
+
+    <main>
+      <select class="mobile-toc" aria-label="Jump to section"></select>
+
+      <article class="doc" data-document-language="ru" lang="ru">
+        <header class="hero" id="ru-overview">
+          <p class="eyebrow">QuartzLab · Unity Editor Tool</p>
+          <h1>Clip<span>Switch</span></h1>
+          <p class="lead">Инструмент для просмотра, замены, сравнения и обработки звуковых ассетов Unity с сохранением GUID и существующих ссылок проекта.</p>
+          <div class="meta-row">
+            <span>Unity 2022.3+</span>
+            <span>Только Editor</span>
+            <span>Офлайн-документация</span>
+          </div>
+        </header>
+
+        <section id="ru-quick-start">
+          <h2>Быстрый старт</h2>
+          <div class="steps">
+            <div class="step"><p>Откройте <strong>Tools → QuartzLab → ClipSwitch</strong>.</p></div>
+            <div class="step"><p>В Библиотеке выберите один клип, диапазон через <kbd>Shift</kbd> или отдельные элементы через <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>.</p></div>
+            <div class="step"><p>Нажмите <strong>Открыть в редакторе</strong> в верхней панели или выберите команду через контекстное меню.</p></div>
+            <div class="step"><p>Настройте параметры импорта или операции обработки для выбранных дорожек.</p></div>
+            <div class="step"><p>Используйте <strong>Перезаписать + копия</strong>. Перед изменением ClipSwitch сохранит исходную версию в Истории.</p></div>
+          </div>
+
+          <div class="note success">
+            <strong>Ссылки сохраняются</strong>
+            <p>ClipSwitch изменяет содержимое файла, не заменяя его <code>.meta</code> и GUID.</p>
+          </div>
+        </section>
+
+        <section id="ru-library">
+          <h2>Библиотека</h2>
+          <p>Библиотека собирает AudioClip проекта в одном окне и позволяет выполнять основные операции без постоянного переключения между Project и Inspector.</p>
+
+          <div class="plain-list">
+            <div class="plain-item"><strong>Два режима отображения</strong><span>Waveform-строки или компактный список названий.</span></div>
+            <div class="plain-item"><strong>Групповые операции</strong><span>Контекстное меню применяется ко всей выбранной группе.</span></div>
+            <div class="plain-item"><strong>Предпрослушивание</strong><span>Воспроизведение с выбранной позиции waveform.</span></div>
+            <div class="plain-item"><strong>Поиск ссылок</strong><span>Проверка сцен, префабов и зависимых ассетов проекта.</span></div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Действие</th><th>Что происходит</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Открыть в редакторе</td><td>Загружает выбранные клипы в Audio Editor.</td></tr>
+                <tr><td>Заменить на…</td><td>Меняет содержимое с сохранением GUID и ссылок.</td></tr>
+                <tr><td>Поменять местами с…</td><td>Обменивает содержимое двух клипов или нескольких пар.</td></tr>
+                <tr><td>История</td><td>Показывает сохранённые версии с waveform и предпрослушиванием.</td></tr>
+                <tr><td>Показать ссылки</td><td>Ищет точные ссылки в загруженных сценах и зависимых ассетах.</td></tr>
+                <tr><td>Открыть в…</td><td>Открывает файлы во внешнем приложении.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="ru-picker">
+          <h2>Окно выбора клипов</h2>
+          <p>Окно используется при замене и обмене звуков. Можно переключаться между компактными названиями и waveform-дорожками.</p>
+          <ul>
+            <li>Клик или перетаскивание по waveform перемещает каретку.</li>
+            <li>Воспроизведение начинается после отпускания кнопки мыши.</li>
+            <li>Пауза и остановка доступны в той же строке управления.</li>
+            <li>Закрытие окна или <strong>Отмена</strong> не запускают операцию.</li>
+          </ul>
+        </section>
+
+        <section id="ru-editor">
+          <h2>Аудиоредактор</h2>
+          <p>Audio Editor позволяет работать с одним или несколькими клипами в общей сессии и проверять результат до записи на диск.</p>
+
+          <h3>Выбор дорожек</h3>
+          <ul>
+            <li>При загрузке группы отображаются все дорожки; изначально выбраны все.</li>
+            <li>Обычный клик выбирает одну дорожку.</li>
+            <li><kbd>Shift</kbd> выбирает диапазон.</li>
+            <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> добавляет или убирает отдельные дорожки.</li>
+          </ul>
+
+          <h3>Операции обработки</h3>
+          <div class="plain-list">
+            <div class="plain-item"><strong>Trim</strong><span>Обрезка начала и конца клипа.</span></div>
+            <div class="plain-item"><strong>Silence / DC</strong><span>Удаление тишины и DC offset.</span></div>
+            <div class="plain-item"><strong>Gain / Normalize</strong><span>Изменение громкости и нормализация.</span></div>
+            <div class="plain-item"><strong>Reverse</strong><span>Разворот звука во времени.</span></div>
+            <div class="plain-item"><strong>Fade In / Out</strong><span>Плавное появление и затухание.</span></div>
+            <div class="plain-item"><strong>Pitch / Speed</strong><span>Изменение высоты тона вместе со скоростью.</span></div>
+          </div>
+
+          <p>Результат обработки пересчитывается асинхронно и сразу доступен для прослушивания и визуальной проверки.</p>
+        </section>
+
+        <section id="ru-safety">
+          <h2>История и безопасность</h2>
+          <p>Перед заменой, обменом, обработкой или восстановлением ClipSwitch создаёт копию исходного файла в настроенной папке истории.</p>
+          <ul>
+            <li>Рабочий ассет сохраняет исходный <code>.meta</code> и GUID.</li>
+            <li>Сохранённые версии можно прослушивать и сравнивать по waveform.</li>
+            <li>Восстановление также создаёт резервную копию текущей версии.</li>
+          </ul>
+          <div class="note warning">
+            <strong>Рекомендуется система контроля версий</strong>
+            <p>Перед массовыми изменениями сохраните проект в Git или другой системе контроля версий.</p>
+          </div>
+        </section>
+
+        <section id="ru-formats">
+          <h2>Поддерживаемые форматы</h2>
+          <p>ClipSwitch работает с форматами, импортируемыми Unity 2022.3:</p>
+          <div class="formats">
+            <span class="format">WAV</span><span class="format">MP3</span><span class="format">OGG</span>
+            <span class="format">FLAC</span><span class="format">AIFF</span><span class="format">XM</span>
+            <span class="format">MOD</span><span class="format">IT</span><span class="format">S3M</span>
+          </div>
+          <p>Расширенная обработка доступна для AudioClip, который Unity может декодировать в PCM.</p>
+        </section>
+
+        <section id="ru-shortcuts">
+          <h2>Выделение и управление</h2>
+          <div class="shortcut-list">
+            <div class="shortcut"><strong>Клик</strong><span>Выбрать один клип или дорожку.</span></div>
+            <div class="shortcut"><strong><kbd>Shift</kbd> + клик</strong><span>Выбрать непрерывный диапазон.</span></div>
+            <div class="shortcut"><strong><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + клик</strong><span>Добавить или убрать отдельный элемент.</span></div>
+            <div class="shortcut"><strong>ПКМ</strong><span>Открыть контекстное меню.</span></div>
+            <div class="shortcut"><strong>Клик по waveform</strong><span>Изменить позицию воспроизведения.</span></div>
+          </div>
+        </section>
+
+        <section id="ru-limitations">
+          <h2>Ограничения</h2>
+          <ul>
+            <li>Инструмент работает только в Unity Editor.</li>
+            <li>Обработка зависит от возможности Unity декодировать AudioClip в PCM.</li>
+            <li>После обновления Unity рекомендуется проверить waveform и предпрослушивание.</li>
+          </ul>
+        </section>
+
+        <footer class="footer">
+          ClipSwitch Documentation · QuartzLab · RU / EN
+        </footer>
+      </article>
+
+      <article class="doc" data-document-language="en" lang="en" hidden>
+        <header class="hero" id="en-overview">
+          <p class="eyebrow">QuartzLab · Unity Editor Tool</p>
+          <h1>Clip<span>Switch</span></h1>
+          <p class="lead">A tool for previewing, replacing, comparing, and processing Unity audio assets while preserving GUIDs and existing project references.</p>
+          <div class="meta-row">
+            <span>Unity 2022.3+</span>
+            <span>Editor only</span>
+            <span>Offline documentation</span>
+          </div>
+        </header>
+
+        <section id="en-quick-start">
+          <h2>Quick start</h2>
+          <div class="steps">
+            <div class="step"><p>Open <strong>Tools → QuartzLab → ClipSwitch</strong>.</p></div>
+            <div class="step"><p>Select one clip, a range with <kbd>Shift</kbd>, or individual clips with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>.</p></div>
+            <div class="step"><p>Choose <strong>Open in Editor</strong> from the toolbar or context menu.</p></div>
+            <div class="step"><p>Adjust import settings or processing operations for the selected tracks.</p></div>
+            <div class="step"><p>Use <strong>Overwrite + Backup</strong>. ClipSwitch stores the original version in History first.</p></div>
+          </div>
+
+          <div class="note success">
+            <strong>References are preserved</strong>
+            <p>ClipSwitch changes file contents without replacing the original <code>.meta</code> file or GUID.</p>
+          </div>
+        </section>
+
+        <section id="en-library">
+          <h2>Library</h2>
+          <p>Library collects project AudioClips in one window and exposes common operations without repeated switching between Project and Inspector.</p>
+
+          <div class="plain-list">
+            <div class="plain-item"><strong>Two display modes</strong><span>Waveform rows or a compact name list.</span></div>
+            <div class="plain-item"><strong>Batch operations</strong><span>Context-menu actions apply to the complete selection.</span></div>
+            <div class="plain-item"><strong>Preview</strong><span>Start playback from a selected waveform position.</span></div>
+            <div class="plain-item"><strong>Reference search</strong><span>Inspect scenes, prefabs, and dependent project assets.</span></div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Action</th><th>Result</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Open in Editor</td><td>Loads selected clips into Audio Editor.</td></tr>
+                <tr><td>Replace With…</td><td>Replaces contents while preserving GUIDs and references.</td></tr>
+                <tr><td>Swap With…</td><td>Swaps the contents of two clips or multiple pairs.</td></tr>
+                <tr><td>History</td><td>Shows stored versions with waveform preview and playback.</td></tr>
+                <tr><td>Find References</td><td>Finds exact references in loaded scenes and dependent assets.</td></tr>
+                <tr><td>Open In…</td><td>Opens files in an external application.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="en-picker">
+          <h2>Clip picker</h2>
+          <p>The picker is used during replace and swap operations. It can display compact names or waveform tracks.</p>
+          <ul>
+            <li>Click or drag over a waveform to move the cursor.</li>
+            <li>Playback starts when the mouse button is released.</li>
+            <li>Pause and Stop controls are available in the same row.</li>
+            <li>Closing the window or selecting <strong>Cancel</strong> never starts the operation.</li>
+          </ul>
+        </section>
+
+        <section id="en-editor">
+          <h2>Audio Editor</h2>
+          <p>Audio Editor loads one or many clips into a shared session and lets you verify the result before writing changes to disk.</p>
+
+          <h3>Track selection</h3>
+          <ul>
+            <li>All loaded tracks are displayed and initially selected.</li>
+            <li>A regular click selects one track.</li>
+            <li><kbd>Shift</kbd> selects a range.</li>
+            <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds or removes individual tracks.</li>
+          </ul>
+
+          <h3>Processing operations</h3>
+          <div class="plain-list">
+            <div class="plain-item"><strong>Trim</strong><span>Remove the beginning or end of a clip.</span></div>
+            <div class="plain-item"><strong>Silence / DC</strong><span>Remove silence and DC offset.</span></div>
+            <div class="plain-item"><strong>Gain / Normalize</strong><span>Adjust overall level and normalize amplitude.</span></div>
+            <div class="plain-item"><strong>Reverse</strong><span>Reverse the clip in time.</span></div>
+            <div class="plain-item"><strong>Fade In / Out</strong><span>Add smooth entry and exit fades.</span></div>
+            <div class="plain-item"><strong>Pitch / Speed</strong><span>Change pitch together with playback speed.</span></div>
+          </div>
+
+          <p>Processing is recalculated asynchronously and becomes available immediately for playback and waveform inspection.</p>
+        </section>
+
+        <section id="en-safety">
+          <h2>History and safety</h2>
+          <p>Before a replace, swap, processing, or restore operation, ClipSwitch stores a copy of the original file in the configured history directory.</p>
+          <ul>
+            <li>The working asset keeps its original <code>.meta</code> file and GUID.</li>
+            <li>Stored versions can be played and compared by waveform.</li>
+            <li>Restoring a version also backs up the current state.</li>
+          </ul>
+          <div class="note warning">
+            <strong>Version control is recommended</strong>
+            <p>Commit the project before performing large batch changes.</p>
+          </div>
+        </section>
+
+        <section id="en-formats">
+          <h2>Supported formats</h2>
+          <p>ClipSwitch works with formats imported by Unity 2022.3:</p>
+          <div class="formats">
+            <span class="format">WAV</span><span class="format">MP3</span><span class="format">OGG</span>
+            <span class="format">FLAC</span><span class="format">AIFF</span><span class="format">XM</span>
+            <span class="format">MOD</span><span class="format">IT</span><span class="format">S3M</span>
+          </div>
+          <p>Advanced processing is available when Unity can decode the AudioClip to PCM.</p>
+        </section>
+
+        <section id="en-shortcuts">
+          <h2>Selection and controls</h2>
+          <div class="shortcut-list">
+            <div class="shortcut"><strong>Click</strong><span>Select one clip or track.</span></div>
+            <div class="shortcut"><strong><kbd>Shift</kbd> + click</strong><span>Select a continuous range.</span></div>
+            <div class="shortcut"><strong><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + click</strong><span>Add or remove an individual item.</span></div>
+            <div class="shortcut"><strong>Right-click</strong><span>Open the context menu.</span></div>
+            <div class="shortcut"><strong>Click a waveform</strong><span>Change the playback position.</span></div>
+          </div>
+        </section>
+
+        <section id="en-limitations">
+          <h2>Limitations</h2>
+          <ul>
+            <li>ClipSwitch runs in Unity Editor only.</li>
+            <li>Processing depends on Unity being able to decode the AudioClip to PCM.</li>
+            <li>After upgrading Unity, verify waveform display and preview behavior.</li>
+          </ul>
+        </section>
+
+        <footer class="footer">
+          ClipSwitch Documentation · QuartzLab · RU / EN
+        </footer>
+      </article>
+    </main>
+  </div>
+
+  <script src="./__doc-inline-script-1.js"></script>
+</body>
+</html>

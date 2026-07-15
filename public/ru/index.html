@@ -1,19 +1,142 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Бесплатные специализированные плагины QuartzLab для Unity Editor.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Компактные плагины QuartzLab для Unity Editor с данными из последних опубликованных GitHub-релизов.">
   <title>QuartzLab — плагины для Unity Editor</title>
-  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="site-header"><div class="shell header-inner"><a class="brand" href="/ru/" aria-label="QuartzLab — главная"><img src="/assets/quartzlab-mark.svg" alt=""><span>Quartz<span>Lab</span></span></a><nav class="main-nav" aria-label="Главная навигация"><a class="active" href="#plugins">Плагины</a><a href="#about">О проекте</a></nav><div class="header-actions"><div class="language-switch" aria-label="Язык"><a data-language="ru" href="/ru/">RU</a><a data-language="en" href="/en/">EN</a></div><a class="header-support" href="#support">Поддержать</a></div></div></header>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="/ru/" aria-label="QuartzLab — главная">
+        <img src="/assets/quartzlab-mark.svg" alt="">
+        <span>Quartz<span>Lab</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Главная навигация">
+        <a class="active" href="#plugins">Плагины</a>
+        <a href="/ru/about/">О проекте</a>
+      </nav>
+      <div class="header-actions">
+        <div class="language-switch" aria-label="Язык">
+          <a data-language="ru" href="/ru/">RU</a>
+          <a data-language="en" href="/en/">EN</a>
+        </div>
+        <a class="header-support" data-support-link data-support-place="home-header" href="https://boosty.to/quartzlab">Поддержать</a>
+      </div>
+    </div>
+  </header>
   <main>
-    <section class="intro"><div class="hero-grid" aria-hidden="true"></div><div class="shell intro-layout"><div class="intro-inner"><p class="eyebrow">Unity Editor Tools</p><h1>Меньше рутины.<br>Больше времени на игру.</h1><p class="intro-copy">Небольшие бесплатные плагины QuartzLab для задач, которые Unity заставляет делать слишком долго.</p></div><div class="hero-mark" aria-hidden="true"><div class="mark-orbit"></div><img src="/assets/quartzlab-mark.svg" alt=""></div></div></section>
-    <section class="catalog shell" id="plugins"><div class="catalog-heading"><div><h2 data-catalog-title>Все плагины</h2><p id="catalogCount">Загрузка каталога…</p></div><label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><input id="searchInput" type="search" placeholder="Поиск плагинов" autocomplete="off"></label></div><div class="catalog-layout"><aside class="filters" aria-label="Фильтры каталога"><div class="filter-section"><h3 data-filter-category>Категория</h3><div id="categoryFilters" class="filter-list"></div></div><div class="filter-section compact"><h3 data-filter-compatibility>Совместимость</h3><label class="check-row"><input id="ltsOnly" type="checkbox"><span>Unity 2022.3+</span></label></div><button id="resetFilters" class="text-button" hidden>Сбросить фильтры</button></aside><div class="catalog-main"><div class="catalog-toolbar"><div class="mobile-filter-row" id="mobileFilters"></div><label class="sort-control"><span data-sort-label>Сортировка</span><select id="sortSelect"></select></label></div><div id="pluginGrid" class="product-grid" aria-live="polite"></div><div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Попробуй другую категорию или запрос.</span><button id="emptyReset" class="small-button">Сбросить фильтры</button></div></div></div></section>
-    <section class="about-section" id="about"><div class="shell about-grid"><div><p class="eyebrow">QuartzLab</p><h2>Один плагин — одна понятная проблема.</h2></div><p>Без огромных фреймворков и бесконечных настроек. Инструмент должен быстро открыться, сделать работу и не мешать привычному Unity-проекту.</p></div></section>
+    <section class="intro">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="shell intro-layout">
+        <div class="intro-inner">
+          <p class="eyebrow">Unity Editor Tools</p>
+          <h1>Меньше рутины.<br>Больше предсказуемости.</h1>
+          <p class="intro-copy">QuartzLab делает компактные плагины для Unity Editor, которые решают одну понятную задачу, остаются editor-only и автоматически подтягивают данные из последнего опубликованного GitHub-релиза.</p>
+          <div class="intro-actions">
+            <a class="primary-link" href="#plugins">Открыть плагины</a>
+            <a class="secondary-link" href="/ru/about/">О QuartzLab</a>
+          </div>
+        </div>
+        <div class="hero-mark" aria-hidden="true">
+          <div class="mark-orbit"></div>
+          <img src="/assets/quartzlab-mark.svg" alt="">
+        </div>
+      </div>
+    </section>
+    <section class="catalog shell" id="plugins">
+      <div class="catalog-heading">
+        <div>
+          <h2 data-catalog-title>Все плагины</h2>
+          <p id="catalogCount">Загрузка каталога…</p>
+        </div>
+        <label class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          <input id="searchInput" type="search" placeholder="Поиск плагинов" autocomplete="off">
+        </label>
+      </div>
+      <div class="catalog-layout">
+        <aside class="filters" aria-label="Фильтры каталога">
+          <div class="filter-section">
+            <h3 data-filter-category>Категория</h3>
+            <div id="categoryFilters" class="filter-list"></div>
+          </div>
+          <div class="filter-section compact">
+            <h3 data-filter-compatibility>Совместимость</h3>
+            <label class="check-row">
+              <input id="ltsOnly" type="checkbox">
+              <span>Unity 2022.3+</span>
+            </label>
+          </div>
+          <button id="resetFilters" class="text-button" hidden>Сбросить фильтры</button>
+        </aside>
+        <div class="catalog-main">
+          <div class="catalog-toolbar">
+            <div class="mobile-filter-row" id="mobileFilters"></div>
+            <label class="sort-control">
+              <span data-sort-label>Сортировка</span>
+              <select id="sortSelect"></select>
+            </label>
+          </div>
+          <div id="pluginGrid" class="product-grid" aria-live="polite"></div>
+          <div id="emptyState" class="empty-state" hidden>
+            <strong>Ничего не найдено</strong>
+            <span>Попробуй другую категорию или запрос.</span>
+            <button id="emptyReset" class="small-button">Сбросить фильтры</button>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer class="site-footer" id="support"><div class="shell footer-main"><div><a class="brand footer-brand" href="/ru/"><img src="/assets/quartzlab-mark.svg" alt=""><span>Quartz<span>Lab</span></span></a><p>Бесплатные инструменты для Unity-разработчиков.</p></div><div class="support-block"><span>Плагины остаются бесплатными</span><p>Понравился инструмент — можно поддержать следующие релизы донатом.</p><span class="support-coming">Ссылка на поддержку появится позже</span></div></div><div class="shell footer-bottom"><span>© 2026 QuartzLab</span><span>Made for Unity developers</span></div></footer>
-  <template id="productTemplate"><article class="product-card"><a class="product-cover" href=""><img alt="" loading="lazy"><span class="free-badge">БЕСПЛАТНО</span></a><div class="product-info"><a class="product-title" href=""></a><p class="product-description"></p><div class="product-meta"><span class="product-category"></span><span class="product-downloads"></span><span class="product-version"></span></div></div></article></template>
-  <script src="/site.js" defer></script><script src="/catalog.js" defer></script>
-</body></html>
+  <footer class="site-footer">
+    <div class="shell footer-main">
+      <div>
+        <a class="brand footer-brand" href="/ru/">
+          <img src="/assets/quartzlab-mark.svg" alt="">
+          <span>Quartz<span>Lab</span></span>
+        </a>
+        <p>Независимые Unity Editor-инструменты с предсказуемыми изменениями файлов, открытым кодом и документацией на двух языках.</p>
+        <div class="footer-links">
+          <a href="/ru/about/">Страница проекта</a>
+          <a href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </div>
+      <div class="support-block">
+        <span>Поддержать следующий релиз</span>
+        <p>Если QuartzLab сэкономил время в проекте, поддержка на Boosty помогает оставлять плагины бесплатными и не раздувать их лишними системами.</p>
+        <a class="support-button" data-support-link data-support-place="home-footer" href="https://boosty.to/quartzlab">Поддержать на Boosty</a>
+      </div>
+    </div>
+    <div class="shell footer-bottom">
+      <span>© 2026 QuartzLab</span>
+      <span>Данные каталога берутся из последнего опубликованного GitHub-релиза</span>
+    </div>
+  </footer>
+  <template id="productTemplate">
+    <article class="product-card">
+      <a class="product-cover" href="">
+        <img alt="" loading="lazy">
+        <span class="free-badge">БЕСПЛАТНО</span>
+      </a>
+      <div class="product-info">
+        <a class="product-title" href=""></a>
+        <p class="product-description"></p>
+        <div class="product-meta">
+          <span class="product-category"></span>
+          <span class="product-downloads"></span>
+          <span class="product-version"></span>
+        </div>
+      </div>
+    </article>
+  </template>
+  <script src="/site.js" defer></script>
+  <script src="/catalog.js" defer></script>
+</body>
+</html>

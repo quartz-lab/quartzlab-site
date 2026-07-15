@@ -1,17 +1,12 @@
 [
   {
-    "slug": "clipswitch",
-    "name": "ClipSwitch",
+    "repository": "https://github.com/quartz-lab/clipswitch",
+    "featured": true,
+    "cover": "/assets/covers/clipswitch.svg",
     "category": {
       "en": "Audio",
       "ru": "Аудио"
     },
-    "version": "1.0.0",
-    "unityVersion": "2022.3+",
-    "license": "MIT",
-    "featured": true,
-    "updatedAt": "2026-07-14",
-    "cover": "/assets/covers/clipswitch.svg",
     "media": [
       {
         "type": "image",
@@ -22,15 +17,12 @@
         }
       }
     ],
-    "releaseUrl": "https://github.com/quartz-lab/clipswitch/releases/tag/v1.0.0",
-    "repositoryUrl": "https://github.com/quartz-lab/clipswitch",
-    "documentationAvailable": true,
-    "assetStoreUrl": null,
     "tags": [
       "AudioClip",
       "Backup",
       "Workflow"
     ],
+    "assetStoreUrl": null,
     "i18n": {
       "en": {
         "subtitle": "Replace, compare, and process Unity audio assets without breaking references.",

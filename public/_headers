@@ -1,12 +1,20 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), microphone=(), payment=(), usb=(), browsing-topics=()
   X-Frame-Options: SAMEORIGIN
+  Cross-Origin-Resource-Policy: same-origin
+  Origin-Agent-Cluster: ?1
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com; media-src 'self'; frame-src https://www.youtube-nocookie.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests
 
 /assets/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=604800, immutable
 
 /data/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/en/docs/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/ru/docs/*
   Cache-Control: public, max-age=300, must-revalidate
