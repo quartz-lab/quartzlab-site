@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="About QuartzLab, its Unity Editor plugin principles, release policy, support, and feedback channels.">
+  <meta name="description" content="About QuartzLab, its approach to Unity Editor tools, feedback channels, and support links.">
   <title>About QuartzLab</title>
   <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
   <script src="/theme.js"></script>
@@ -25,6 +25,7 @@
           <a data-language="ru" href="/ru/about/">RU</a>
           <a class="active" aria-current="true" data-language="en" href="/en/about/">EN</a>
         </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
         <a class="header-support" data-support-link data-support-place="about-header" href="https://boosty.to/quartzlab">Support</a>
       </div>
     </div>
@@ -33,75 +34,64 @@
     <section class="project-hero">
       <div>
         <p class="eyebrow">QuartzLab</p>
-        <h1>Compact Unity Editor tools with one clear job each.</h1>
-        <p class="project-copy">QuartzLab builds small Unity Editor plugins that cut repeated work without loading a project with frameworks it does not need. The goal is simple: save time, keep file changes predictable, and make the tool understandable the first time you open it.</p>
+        <h1>Small Unity Editor tools for work that should stay simple.</h1>
+        <p class="project-copy">QuartzLab is an independent one-developer project focused on compact editor-only plugins. The goal is to cut repeated manual work, keep file changes predictable, and avoid turning a small tool into a framework.</p>
       </div>
-      <aside class="project-links">
-        <h2>Project links</h2>
-        <a href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://www.youtube.com/@quartz-lab" target="_blank" rel="noopener noreferrer">YouTube</a>
-        <a href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">Telegram</a>
-      </aside>
+      <div class="project-social-row" aria-label="Project links">
+        <a class="project-social-link" href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.12-1.47-1.12-1.47-.91-.62.07-.61.07-.61 1 .07 1.54 1.03 1.54 1.03.9 1.54 2.35 1.1 2.92.83.09-.65.35-1.1.64-1.35-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02a9.59 9.59 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.41.1 2.66.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+          <span>GitHub</span>
+        </a>
+        <a class="project-social-link" href="https://www.youtube.com/@quartz-lab" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3.1 3.1 0 0 0-2.18-2.2C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.32.5A3.1 3.1 0 0 0 .5 6.2 32.4 32.4 0 0 0 0 12a32.4 32.4 0 0 0 .5 5.8 3.1 3.1 0 0 0 2.18 2.2c1.92.5 9.32.5 9.32.5s7.4 0 9.32-.5a3.1 3.1 0 0 0 2.18-2.2A32.4 32.4 0 0 0 24 12a32.4 32.4 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.4 3.7-6.4 3.7Z"/></svg>
+          <span>YouTube</span>
+        </a>
+        <a class="project-social-link" href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m21.3 4.6-3 14.2c-.23 1-.84 1.24-1.7.77l-4.7-3.45-2.27 2.18c-.25.25-.47.47-.95.47l.34-4.82 8.78-7.93c.38-.34-.08-.54-.59-.2l-10.86 6.84-4.67-1.46c-1.01-.32-1.03-1.01.22-1.5L19.5 3.1c.83-.31 1.55.2 1.8 1.5Z"/></svg>
+          <span>Telegram</span>
+        </a>
+      </div>
     </section>
 
-    <section class="project-grid">
-      <article class="project-card">
-        <h2>What QuartzLab is responsible for</h2>
-        <p>QuartzLab focuses on practical Unity Editor workflows: importing, replacing, reviewing, and fixing assets without adding runtime systems or hidden pipelines. Tools stay editor-only unless there is a strong reason not to.</p>
-      </article>
-      <article class="project-card">
-        <h2>Core principles</h2>
-        <div class="principles-grid">
-          <div class="principle-card"><strong>One tool, one task</strong><span>Each plugin should solve a specific problem and stay narrow enough to remain understandable.</span></div>
-          <div class="principle-card"><strong>Less routine</strong><span>Automation should remove repeated manual work instead of replacing it with setup overhead.</span></div>
-          <div class="principle-card"><strong>Safe file operations</strong><span>Changes should be explicit, reviewable, and reversible whenever possible.</span></div>
-          <div class="principle-card"><strong>Clear interface</strong><span>A tool should be usable without separate training material before basic work can begin.</span></div>
-        </div>
-      </article>
-      <article class="project-card">
-        <h2>How plugins are developed</h2>
-        <p>QuartzLab targets Unity LTS first, keeps documentation in Russian and English, and prefers backwards compatibility when it can be maintained without hidden fragility. File writes should stay predictable, updates should stay understandable, and editor behavior should remain easier to audit than a custom framework.</p>
-      </article>
-      <article class="project-card">
-        <h2>Project history</h2>
-        <p>QuartzLab is an independent one-developer project. It grew out of repeated production tasks during game development and editor tooling work, where small gaps in Unity workflows kept costing time. The project exists to package those fixes into focused plugins instead of carrying them as private snippets forever.</p>
-      </article>
+    <section class="project-flow">
+      <section class="project-section">
+        <h2>What QuartzLab does</h2>
+        <p>QuartzLab builds focused Unity Editor tools for importing, replacing, reviewing, and cleaning up assets without adding runtime systems or hidden pipelines. Plugins stay narrow on purpose: one tool, one clear job, minimum setup.</p>
+      </section>
+
+      <section class="project-section">
+        <h2>How the plugins are built</h2>
+        <p>Unity LTS is the main target. The preferred approach is editor-only architecture, bilingual documentation, open repositories, and backwards compatibility where it stays maintainable. If a workflow touches files, the result should be obvious and reviewable.</p>
+      </section>
+
+      <section class="project-section">
+        <h2>Principles</h2>
+        <ul class="principles-list">
+          <li>One tool, one clear task.</li>
+          <li>Less routine, fewer settings, faster first use.</li>
+          <li>Safe file operations with predictable changes.</li>
+          <li>Interfaces that do not need separate training before useful work starts.</li>
+        </ul>
+      </section>
     </section>
 
-    <section class="project-grid">
-      <article class="project-card">
-        <h2>Licensing and source</h2>
-        <p>Plugins are free and repositories stay open. Commercial use depends on the license declared in each repository and shown on the plugin page. The site now syncs that data from the latest published GitHub release so the version, minimum Unity version, license, and docs stay in one release source.</p>
-      </article>
-      <article class="project-card">
-        <h2>Feedback and support</h2>
-        <div class="feedback-grid">
-          <div class="feedback-card">
-            <strong>Bug reports</strong>
-            <p>Use GitHub Issues in the plugin repository so the report stays tied to code, release, and fix history.</p>
-            <a href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">Open GitHub</a>
-          </div>
-          <div class="feedback-card">
-            <strong>General questions</strong>
-            <p>Telegram is the current direct contact channel for broader questions about tools, workflow, or the project.</p>
-            <a href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">Write on Telegram</a>
-          </div>
-          <div class="feedback-card">
-            <strong>Project support</strong>
-            <p>If you want to help keep releases free and maintained, Boosty is the support channel.</p>
-            <a data-support-link data-support-place="about-feedback" href="https://boosty.to/quartzlab">Open Boosty</a>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section class="support-cta">
+    <section class="project-contact">
       <div>
-        <p class="eyebrow">Support</p>
-        <h2>Tools should save time, not demand a framework of their own.</h2>
-        <p>If QuartzLab helped on a production task, you can support future releases and documentation on Boosty.</p>
+        <p class="eyebrow">Contact</p>
+        <h2>Feedback, issues, and support</h2>
+        <p>Use GitHub Issues for plugin bugs, Telegram for general questions, and Boosty if you want to support future releases and documentation.</p>
       </div>
-      <a class="support-button" data-support-link data-support-place="about-cta" href="https://boosty.to/quartzlab">Support QuartzLab</a>
+      <div class="project-contact-actions">
+        <a class="project-contact-link" href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">
+          <span><strong>GitHub Issues</strong><small>Bug reports and release-specific feedback</small></span>
+          <span>Open</span>
+        </a>
+        <a class="project-contact-link" href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">
+          <span><strong>Telegram</strong><small>General questions and direct contact</small></span>
+          <span>Write</span>
+        </a>
+        <a class="support-button about-support-button" data-support-link data-support-place="about-cta" href="https://boosty.to/quartzlab">Support on Boosty</a>
+      </div>
     </section>
   </main>
   <footer class="site-footer compact-footer">

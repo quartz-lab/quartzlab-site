@@ -4,6 +4,7 @@ window.QuartzLab = (() => {
   const supported = ['en', 'ru'];
   const boostyUrl = 'https://boosty.to/quartzlab';
   const supportRoute = '/go/support';
+  const themeStorageKey = 'quartzlab-theme';
 
   const strings = {
     en: {
@@ -25,13 +26,13 @@ window.QuartzLab = (() => {
       freeNote: 'Free and open source',
       freeNoteText: 'QuartzLab plugins stay free. You can inspect the source, review the license, and support future maintenance only if you want to.',
       supportProject: 'Support QuartzLab',
-      loading: 'Loading…',
+      loading: 'Loading...',
       notFound: 'Plugin not found',
       notFoundText: 'The link may be outdated or the plugin is not published yet.',
       backCatalog: 'Back to catalog',
       downloads: 'downloads',
       mediaImage: 'Screenshot',
-      mediaVideo: 'Video'
+      mediaVideo: 'Video',
     },
     ru: {
       plugins: 'Плагины',
@@ -52,14 +53,14 @@ window.QuartzLab = (() => {
       freeNote: 'Бесплатно и с открытым кодом',
       freeNoteText: 'Плагины QuartzLab остаются бесплатными. Код и лицензии открыты, а поддержка проекта всегда остаётся добровольной.',
       supportProject: 'Поддержать QuartzLab',
-      loading: 'Загрузка…',
+      loading: 'Загрузка...',
       notFound: 'Плагин не найден',
       notFoundText: 'Возможно, ссылка устарела или плагин ещё не опубликован.',
       backCatalog: 'Вернуться в каталог',
       downloads: 'скачиваний',
       mediaImage: 'Скриншот',
-      mediaVideo: 'Видео'
-    }
+      mediaVideo: 'Видео',
+    },
   };
 
   const escape = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -106,10 +107,13 @@ window.QuartzLab = (() => {
   });
 
   const pluginUrl = (lang, slug) =>
-    `/${encodeURIComponent(clampLanguage(lang))}/plugins/${encodeURIComponent(slug)}/`;
+    `/plugin.html?lang=${encodeURIComponent(clampLanguage(lang))}&slug=${encodeURIComponent(slug)}`;
 
   const docsUrl = (lang, slug) =>
-    `/${encodeURIComponent(clampLanguage(lang))}/docs/${encodeURIComponent(slug)}/`;
+    `/docs.html?lang=${encodeURIComponent(clampLanguage(lang))}&slug=${encodeURIComponent(slug)}`;
+
+  const generatedDocsUrl = (lang, slug) =>
+    `/generated-docs/${encodeURIComponent(clampLanguage(lang))}/${encodeURIComponent(slug)}/`;
 
   const aboutUrl = lang => `/${encodeURIComponent(clampLanguage(lang))}/about/`;
 
@@ -123,6 +127,58 @@ window.QuartzLab = (() => {
     try {
       localStorage.setItem('quartzlab-language', lang);
     } catch (_) {}
+  }
+
+  function currentTheme() {
+    const appliedTheme = document.documentElement.dataset.theme;
+    if (appliedTheme === 'light' || appliedTheme === 'dark') {
+      return appliedTheme;
+    }
+
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+
+  function updateThemeToggles(root = document) {
+    const theme = currentTheme();
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    const label = nextTheme === 'dark' ? 'Switch to dark theme' : 'Switch to light theme';
+
+    root.querySelectorAll('[data-theme-toggle]').forEach(button => {
+      button.dataset.theme = theme;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    });
+  }
+
+  function applyTheme(theme) {
+    if (theme !== 'light' && theme !== 'dark') {
+      return;
+    }
+
+    document.documentElement.dataset.theme = theme;
+
+    try {
+      localStorage.setItem(themeStorageKey, theme);
+    } catch (_) {}
+
+    updateThemeToggles();
+  }
+
+  function bindThemeToggles(root = document) {
+    root.querySelectorAll('[data-theme-toggle]').forEach(button => {
+      if (button.dataset.themeBound === 'true') {
+        return;
+      }
+
+      button.dataset.themeBound = 'true';
+      button.addEventListener('click', () => {
+        applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+      });
+    });
+
+    updateThemeToggles(root);
   }
 
   function bindLanguageSwitchers(currentLang, slug = '', section = '') {
@@ -194,13 +250,17 @@ window.QuartzLab = (() => {
 
   const api = {
     aboutUrl,
+    applyTheme,
+    bindLanguageSwitchers,
+    bindThemeToggles,
     boostyUrl,
     buildSupportUrl,
-    bindLanguageSwitchers,
+    currentTheme,
     decorateSupportLinks,
     docsUrl,
     escape,
     formatNumber,
+    generatedDocsUrl,
     languageFromPath,
     loadData,
     localize,
@@ -209,13 +269,18 @@ window.QuartzLab = (() => {
     setLanguagePreference,
     slugFromPath,
     strings,
+    updateThemeToggles,
     youtubeId,
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => decorateSupportLinks(), { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      decorateSupportLinks();
+      bindThemeToggles();
+    }, { once: true });
   } else {
     decorateSupportLinks();
+    bindThemeToggles();
   }
 
   return api;

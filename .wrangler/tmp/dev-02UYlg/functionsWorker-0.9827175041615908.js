@@ -105,6 +105,55 @@ async function onRequestHead() {
 }
 __name(onRequestHead, "onRequestHead");
 __name2(onRequestHead, "onRequestHead");
+async function onRequest(context) {
+  const assetUrl = new URL("/docs-shell", context.request.url);
+  return context.env.ASSETS.fetch(new Request(assetUrl.toString(), context.request));
+}
+__name(onRequest, "onRequest");
+__name2(onRequest, "onRequest");
+async function onRequest2(context) {
+  const assetUrl = new URL("/plugin-shell", context.request.url);
+  return context.env.ASSETS.fetch(new Request(assetUrl.toString(), context.request));
+}
+__name(onRequest2, "onRequest2");
+__name2(onRequest2, "onRequest");
+var LEGACY_ROUTE_PATTERN = /^\/(ru|en)\/(plugins|docs)\/([a-z0-9][a-z0-9-]{0,63})\/?$/;
+function parseLegacyRoute(pathname) {
+  const match2 = LEGACY_ROUTE_PATTERN.exec(pathname);
+  if (!match2) {
+    return null;
+  }
+  const [, language, section, slug] = match2;
+  return {
+    language,
+    section,
+    slug
+  };
+}
+__name(parseLegacyRoute, "parseLegacyRoute");
+__name2(parseLegacyRoute, "parseLegacyRoute");
+function buildLegacyRedirect(url, route) {
+  const destination = new URL(route.section === "plugins" ? "/plugin.html" : "/docs.html", url);
+  destination.searchParams.set("lang", route.language);
+  destination.searchParams.set("slug", route.slug);
+  return destination;
+}
+__name(buildLegacyRedirect, "buildLegacyRedirect");
+__name2(buildLegacyRedirect, "buildLegacyRedirect");
+async function onRequest3(context) {
+  const { request, next } = context;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return next();
+  }
+  const url = new URL(request.url);
+  const route = parseLegacyRoute(url.pathname);
+  if (!route) {
+    return next();
+  }
+  return Response.redirect(buildLegacyRedirect(url, route), 302);
+}
+__name(onRequest3, "onRequest3");
+__name2(onRequest3, "onRequest");
 var routes = [
   {
     routePath: "/go/support",
@@ -119,6 +168,27 @@ var routes = [
     method: "HEAD",
     middlewares: [],
     modules: [onRequestHead]
+  },
+  {
+    routePath: "/docs.html",
+    mountPath: "/",
+    method: "",
+    middlewares: [],
+    modules: [onRequest]
+  },
+  {
+    routePath: "/plugin.html",
+    mountPath: "/",
+    method: "",
+    middlewares: [],
+    modules: [onRequest2]
+  },
+  {
+    routePath: "/",
+    mountPath: "/",
+    method: "",
+    middlewares: [onRequest3],
+    modules: []
   }
 ];
 function lexer(str) {

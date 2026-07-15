@@ -94,6 +94,56 @@ async function onRequestHead() {
 }
 __name(onRequestHead, "onRequestHead");
 
+// docs.html.js
+async function onRequest(context) {
+  const assetUrl = new URL("/docs-shell", context.request.url);
+  return context.env.ASSETS.fetch(new Request(assetUrl.toString(), context.request));
+}
+__name(onRequest, "onRequest");
+
+// plugin.html.js
+async function onRequest2(context) {
+  const assetUrl = new URL("/plugin-shell", context.request.url);
+  return context.env.ASSETS.fetch(new Request(assetUrl.toString(), context.request));
+}
+__name(onRequest2, "onRequest");
+
+// _middleware.js
+var LEGACY_ROUTE_PATTERN = /^\/(ru|en)\/(plugins|docs)\/([a-z0-9][a-z0-9-]{0,63})\/?$/;
+function parseLegacyRoute(pathname) {
+  const match2 = LEGACY_ROUTE_PATTERN.exec(pathname);
+  if (!match2) {
+    return null;
+  }
+  const [, language, section, slug] = match2;
+  return {
+    language,
+    section,
+    slug
+  };
+}
+__name(parseLegacyRoute, "parseLegacyRoute");
+function buildLegacyRedirect(url, route) {
+  const destination = new URL(route.section === "plugins" ? "/plugin.html" : "/docs.html", url);
+  destination.searchParams.set("lang", route.language);
+  destination.searchParams.set("slug", route.slug);
+  return destination;
+}
+__name(buildLegacyRedirect, "buildLegacyRedirect");
+async function onRequest3(context) {
+  const { request, next } = context;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return next();
+  }
+  const url = new URL(request.url);
+  const route = parseLegacyRoute(url.pathname);
+  if (!route) {
+    return next();
+  }
+  return Response.redirect(buildLegacyRedirect(url, route), 302);
+}
+__name(onRequest3, "onRequest");
+
 // ../.wrangler/tmp/pages-W9UbIw/functionsRoutes-0.44746561313619804.mjs
 var routes = [
   {
@@ -109,6 +159,27 @@ var routes = [
     method: "HEAD",
     middlewares: [],
     modules: [onRequestHead]
+  },
+  {
+    routePath: "/docs.html",
+    mountPath: "/",
+    method: "",
+    middlewares: [],
+    modules: [onRequest]
+  },
+  {
+    routePath: "/plugin.html",
+    mountPath: "/",
+    method: "",
+    middlewares: [],
+    modules: [onRequest2]
+  },
+  {
+    routePath: "/",
+    mountPath: "/",
+    method: "",
+    middlewares: [onRequest3],
+    modules: []
   }
 ];
 
@@ -599,7 +670,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-7q6aIB/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-MNG5kP/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -631,7 +702,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-7q6aIB/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-MNG5kP/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

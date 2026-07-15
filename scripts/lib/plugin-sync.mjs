@@ -12,7 +12,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const CONFIG_PATH = path.join(ROOT, 'catalog', 'plugins.config.json');
 const PUBLIC_PATH = path.join(ROOT, 'public');
 const DATA_PATH = path.join(PUBLIC_PATH, 'data');
-const PLUGIN_SHELL_PATH = path.join(PUBLIC_PATH, 'plugin.html');
+const GENERATED_DOCS_PATH = path.join(PUBLIC_PATH, 'generated-docs');
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_API_VERSION = '2026-03-10';
 const USER_AGENT = 'quartzlab-site-sync/1.0';
@@ -311,8 +311,8 @@ function isNotFoundError(error) {
   return String(error.message || '').includes('GitHub API 404');
 }
 
-function routeBasePath(language, section) {
-  return path.join(PUBLIC_PATH, language, section);
+function generatedDocsBasePath(language) {
+  return path.join(GENERATED_DOCS_PATH, language);
 }
 
 function validateHtmlDocument(filePath, contents) {
@@ -388,8 +388,9 @@ async function cleanupGeneratedSlugDirectories(basePath, activeSlugs) {
 
 async function cleanupGeneratedOutput(activeSlugs) {
   for (const language of SUPPORTED_LANGUAGES) {
-    await cleanupGeneratedSlugDirectories(routeBasePath(language, 'plugins'), activeSlugs);
-    await cleanupGeneratedSlugDirectories(routeBasePath(language, 'docs'), activeSlugs);
+    await cleanupGeneratedSlugDirectories(generatedDocsBasePath(language), activeSlugs);
+    await rm(path.join(PUBLIC_PATH, language, 'plugins'), { recursive: true, force: true });
+    await rm(path.join(PUBLIC_PATH, language, 'docs'), { recursive: true, force: true });
   }
 
   await rm(path.join(PUBLIC_PATH, 'plugin-docs'), { recursive: true, force: true });
@@ -505,7 +506,7 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
     return false;
   }
 
-  const targetDirectory = safeResolve(routeBasePath(routeLanguage, 'docs'), slug);
+  const targetDirectory = safeResolve(generatedDocsBasePath(routeLanguage), slug);
   await rm(targetDirectory, { recursive: true, force: true });
   await mkdir(targetDirectory, { recursive: true });
 
@@ -542,21 +543,6 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
   }
 
   return true;
-}
-
-async function generatePluginRouteShells(slug, pluginShellTemplate) {
-  for (const language of SUPPORTED_LANGUAGES) {
-    const routeDirectory = safeResolve(routeBasePath(language, 'plugins'), slug);
-    await rm(routeDirectory, { recursive: true, force: true });
-    await mkdir(routeDirectory, { recursive: true });
-
-    const html = pluginShellTemplate
-      .replace(/<html lang="[^"]+">/i, `<html lang="${language}">`)
-      .replace(/href="\/en\/#plugins"/g, `href="/${language}/#plugins"`)
-      .replace(/href="\/en\/about\/"/g, `href="/${language}/about/"`)
-      .replace(/href="\/en\/"/g, `href="/${language}/"`);
-    await writeTextFile(path.join(routeDirectory, 'index.html'), html);
-  }
 }
 
 export async function loadPluginConfig() {
@@ -666,9 +652,9 @@ function validatePluginConfig(config) {
 export async function syncPlugins() {
   const token = process.env.GITHUB_PUBLIC_READ_TOKEN || null;
   const configs = await loadPluginConfig();
-  const pluginShellTemplate = await readFile(PLUGIN_SHELL_PATH, 'utf8');
 
   await mkdir(DATA_PATH, { recursive: true });
+  await mkdir(GENERATED_DOCS_PATH, { recursive: true });
 
   const activeSlugs = new Set(configs.map(config => parseGithubRepositoryUrl(config.repository).repo.toLowerCase()));
 
@@ -707,8 +693,6 @@ export async function syncPlugins() {
       hasDocumentation,
     );
 
-    await generatePluginRouteShells(plugin.slug, pluginShellTemplate);
-
     plugins.push(plugin);
     downloads[plugin.slug] = sumPublishedReleaseAssetCount(releases);
   }
@@ -742,5 +726,6 @@ export async function syncPlugins() {
 export const paths = {
   config: CONFIG_PATH,
   data: DATA_PATH,
+  generatedDocs: GENERATED_DOCS_PATH,
   root: ROOT,
 };

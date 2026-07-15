@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="О проекте QuartzLab, его принципах, лицензировании, поддержке и каналах обратной связи.">
+  <meta name="description" content="О QuartzLab, его подходе к Unity Editor-инструментам, обратной связи и поддержке.">
   <title>О QuartzLab</title>
   <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
   <script src="/theme.js"></script>
@@ -25,6 +25,7 @@
           <a class="active" aria-current="true" data-language="ru" href="/ru/about/">RU</a>
           <a data-language="en" href="/en/about/">EN</a>
         </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"></button>
         <a class="header-support" data-support-link data-support-place="about-header" href="https://boosty.to/quartzlab">Поддержать</a>
       </div>
     </div>
@@ -33,75 +34,64 @@
     <section class="project-hero">
       <div>
         <p class="eyebrow">QuartzLab</p>
-        <h1>Компактные Unity Editor-инструменты, где у каждого одна понятная задача.</h1>
-        <p class="project-copy">QuartzLab делает небольшие плагины для Unity Editor, которые сокращают повторяющуюся работу и не перегружают проект лишними системами. Цель простая: экономить время, держать изменения файлов предсказуемыми и делать инструмент понятным с первого запуска.</p>
+        <h1>Небольшие Unity Editor-инструменты для задач, которые должны решаться просто.</h1>
+        <p class="project-copy">QuartzLab — независимый проект одного разработчика с фокусом на компактных editor-only плагинах. Цель простая: убрать повторяющуюся ручную работу, сделать изменения файлов предсказуемыми и не превращать маленький инструмент в отдельный фреймворк.</p>
       </div>
-      <aside class="project-links">
-        <h2>Ссылки проекта</h2>
-        <a href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://www.youtube.com/@quartz-lab" target="_blank" rel="noopener noreferrer">YouTube</a>
-        <a href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">Telegram</a>
-      </aside>
+      <div class="project-social-row" aria-label="Ссылки проекта">
+        <a class="project-social-link" href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.12-1.47-1.12-1.47-.91-.62.07-.61.07-.61 1 .07 1.54 1.03 1.54 1.03.9 1.54 2.35 1.1 2.92.83.09-.65.35-1.1.64-1.35-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02a9.59 9.59 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.41.1 2.66.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+          <span>GitHub</span>
+        </a>
+        <a class="project-social-link" href="https://www.youtube.com/@quartz-lab" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3.1 3.1 0 0 0-2.18-2.2C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.32.5A3.1 3.1 0 0 0 .5 6.2 32.4 32.4 0 0 0 0 12a32.4 32.4 0 0 0 .5 5.8 3.1 3.1 0 0 0 2.18 2.2c1.92.5 9.32.5 9.32.5s7.4 0 9.32-.5a3.1 3.1 0 0 0 2.18-2.2A32.4 32.4 0 0 0 24 12a32.4 32.4 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.4 3.7-6.4 3.7Z"/></svg>
+          <span>YouTube</span>
+        </a>
+        <a class="project-social-link" href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m21.3 4.6-3 14.2c-.23 1-.84 1.24-1.7.77l-4.7-3.45-2.27 2.18c-.25.25-.47.47-.95.47l.34-4.82 8.78-7.93c.38-.34-.08-.54-.59-.2l-10.86 6.84-4.67-1.46c-1.01-.32-1.03-1.01.22-1.5L19.5 3.1c.83-.31 1.55.2 1.8 1.5Z"/></svg>
+          <span>Telegram</span>
+        </a>
+      </div>
     </section>
 
-    <section class="project-grid">
-      <article class="project-card">
-        <h2>За что отвечает QuartzLab</h2>
-        <p>QuartzLab сфокусирован на практических workflow для Unity Editor: импорт, замена, проверка и правка ассетов без добавления runtime-систем и скрытых пайплайнов. Если нет сильной причины иначе, инструменты остаются editor-only.</p>
-      </article>
-      <article class="project-card">
-        <h2>Основные принципы</h2>
-        <div class="principles-grid">
-          <div class="principle-card"><strong>Один инструмент — одна задача</strong><span>Плагин должен решать конкретную проблему и оставаться достаточно узким, чтобы его было легко понять.</span></div>
-          <div class="principle-card"><strong>Меньше рутины</strong><span>Автоматизация должна убирать повторяющиеся действия, а не заменять их новой прослойкой настроек.</span></div>
-          <div class="principle-card"><strong>Безопасные операции с файлами</strong><span>Изменения должны быть явными, проверяемыми и по возможности обратимыми.</span></div>
-          <div class="principle-card"><strong>Понятный интерфейс</strong><span>Инструмент должен быть полезен без отдельного обучения перед первым рабочим сценарием.</span></div>
-        </div>
-      </article>
-      <article class="project-card">
-        <h2>Подход к разработке</h2>
-        <p>QuartzLab в первую очередь ориентируется на Unity LTS, поддерживает документацию на русском и английском и по возможности сохраняет обратную совместимость без скрытой хрупкости. Изменения файлов должны быть предсказуемыми, обновления — понятными, а поведение редактора — проще для аудита, чем самодельный фреймворк.</p>
-      </article>
-      <article class="project-card">
-        <h2>История проекта</h2>
-        <p>QuartzLab — независимый проект одного разработчика. Он вырос из повторяющихся задач в разработке игр и работе с editor tooling, когда небольшие пробелы в workflow Unity постоянно съедали время. Проект нужен для того, чтобы превращать такие решения в отдельные сфокусированные плагины, а не хранить их бесконечно в личных заготовках.</p>
-      </article>
+    <section class="project-flow">
+      <section class="project-section">
+        <h2>Чем занимается QuartzLab</h2>
+        <p>QuartzLab делает сфокусированные инструменты для Unity Editor: импорт, замена, проверка и чистка ассетов без runtime-систем и скрытых пайплайнов. Плагины намеренно остаются узкими: один инструмент, одна понятная задача, минимум лишних настроек.</p>
+      </section>
+
+      <section class="project-section">
+        <h2>Как разрабатываются плагины</h2>
+        <p>Основная цель — Unity LTS. Предпочтительный подход: editor-only архитектура, документация на двух языках, открытые репозитории и обратная совместимость там, где она не превращается в хрупкость. Если инструмент меняет файлы, результат должен быть понятным и проверяемым.</p>
+      </section>
+
+      <section class="project-section">
+        <h2>Принципы</h2>
+        <ul class="principles-list">
+          <li>Один инструмент — одна понятная задача.</li>
+          <li>Меньше рутины, меньше лишних настроек, быстрый первый запуск.</li>
+          <li>Безопасные операции с файлами и предсказуемые изменения.</li>
+          <li>Интерфейс, который не требует отдельного обучения перед работой.</li>
+        </ul>
+      </section>
     </section>
 
-    <section class="project-grid">
-      <article class="project-card">
-        <h2>Лицензирование и открытый код</h2>
-        <p>Плагины бесплатные, а репозитории остаются открытыми. Использование в коммерческих играх зависит от лицензии, указанной в репозитории и показанной на странице плагина. Сайт теперь синхронизирует версию, минимальную Unity, лицензию и документацию из последнего опубликованного GitHub-релиза, чтобы источник релизных данных был один.</p>
-      </article>
-      <article class="project-card">
-        <h2>Обратная связь и поддержка</h2>
-        <div class="feedback-grid">
-          <div class="feedback-card">
-            <strong>Ошибки в плагинах</strong>
-            <p>Используйте GitHub Issues в репозитории плагина: так отчёт остаётся связан с кодом, релизом и историей исправлений.</p>
-            <a href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">Открыть GitHub</a>
-          </div>
-          <div class="feedback-card">
-            <strong>Общие вопросы</strong>
-            <p>Сейчас прямой канал для общих вопросов о проекте, workflow и инструментах — Telegram.</p>
-            <a href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">Написать в Telegram</a>
-          </div>
-          <div class="feedback-card">
-            <strong>Поддержка проекта</strong>
-            <p>Если хочется помочь релизам и документации, для этого используется Boosty.</p>
-            <a data-support-link data-support-place="about-feedback" href="https://boosty.to/quartzlab">Открыть Boosty</a>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section class="support-cta">
+    <section class="project-contact">
       <div>
-        <p class="eyebrow">Поддержка</p>
-        <h2>Инструменты должны экономить время, а не требовать отдельный фреймворк для своей работы.</h2>
-        <p>Если QuartzLab помог в реальной задаче, можно поддержать следующие релизы и документацию на Boosty.</p>
+        <p class="eyebrow">Связь</p>
+        <h2>Ошибки, вопросы и поддержка</h2>
+        <p>Для ошибок в плагинах лучше использовать GitHub Issues, для общих вопросов — Telegram, а для поддержки следующих релизов и документации — Boosty.</p>
       </div>
-      <a class="support-button" data-support-link data-support-place="about-cta" href="https://boosty.to/quartzlab">Поддержать QuartzLab</a>
+      <div class="project-contact-actions">
+        <a class="project-contact-link" href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer">
+          <span><strong>GitHub Issues</strong><small>Ошибки и обратная связь по релизам</small></span>
+          <span>Открыть</span>
+        </a>
+        <a class="project-contact-link" href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer">
+          <span><strong>Telegram</strong><small>Общие вопросы и прямой контакт</small></span>
+          <span>Написать</span>
+        </a>
+        <a class="support-button about-support-button" data-support-link data-support-place="about-cta" href="https://boosty.to/quartzlab">Поддержать на Boosty</a>
+      </div>
     </section>
   </main>
   <footer class="site-footer compact-footer">
