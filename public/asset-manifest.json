@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T17:35:11.602Z",
+  "generatedAt": "2026-07-16T17:43:11.904Z",
   "assets": {
-    "/catalog.js": "/hashed-assets/catalog.42e38599fa78.js",
+    "/catalog.js": "/hashed-assets/catalog.492136e88dda.js",
     "/docs-theme.css": "/hashed-assets/docs-theme.a26e8dd7397f.css",
     "/generated-docs/en/clipswitch/__doc-inline-script-1.js": "/hashed-assets/generated-docs/en/clipswitch/__doc-inline-script-1.637830b7b10c.js",
     "/generated-docs/en/clipswitch/__doc-inline-style-1.css": "/hashed-assets/generated-docs/en/clipswitch/__doc-inline-style-1.0e3292d280e0.css",
@@ -10,10 +10,10 @@
     "/generated-docs/ru/clipswitch/__doc-inline-script-1.js": "/hashed-assets/generated-docs/ru/clipswitch/__doc-inline-script-1.0ba1c4d385c2.js",
     "/generated-docs/ru/clipswitch/__doc-inline-style-1.css": "/hashed-assets/generated-docs/ru/clipswitch/__doc-inline-style-1.0e3292d280e0.css",
     "/generated-docs/ru/clipswitch/__route-language.js": "/hashed-assets/generated-docs/ru/clipswitch/__route-language.04b400c55037.js",
-    "/language-redirect.js": "/hashed-assets/language-redirect.bb0e26f49b22.js",
+    "/language-redirect.js": "/hashed-assets/language-redirect.273b2040798d.js",
     "/plugin-gallery.js": "/hashed-assets/plugin-gallery.c8a56f52d1e0.js",
-    "/site.js": "/hashed-assets/site.536f049e921e.js",
-    "/styles.css": "/hashed-assets/styles.f6fd062cf7ad.css",
+    "/site.js": "/hashed-assets/site.4b176ed2210b.js",
+    "/styles.css": "/hashed-assets/styles.1bb2efebf31e.css",
     "/theme.js": "/hashed-assets/theme.7b9c6c9e49b9.js"
   }
 }
