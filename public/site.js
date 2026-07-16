@@ -107,10 +107,10 @@ window.QuartzLab = (() => {
   });
 
   const pluginUrl = (lang, slug) =>
-    `/plugin.html?lang=${encodeURIComponent(clampLanguage(lang))}&slug=${encodeURIComponent(slug)}`;
+    `/${encodeURIComponent(clampLanguage(lang))}/plugins/${encodeURIComponent(slug)}/`;
 
   const docsUrl = (lang, slug) =>
-    `/docs.html?lang=${encodeURIComponent(clampLanguage(lang))}&slug=${encodeURIComponent(slug)}`;
+    `/${encodeURIComponent(clampLanguage(lang))}/docs/${encodeURIComponent(slug)}/`;
 
   const generatedDocsUrl = (lang, slug) =>
     `/generated-docs/${encodeURIComponent(clampLanguage(lang))}/${encodeURIComponent(slug)}/`;
@@ -143,12 +143,29 @@ window.QuartzLab = (() => {
   function updateThemeToggles(root = document) {
     const theme = currentTheme();
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    const label = nextTheme === 'dark' ? 'Switch to dark theme' : 'Switch to light theme';
+    const language = languageFromPath();
+    const label = language === 'ru'
+      ? (nextTheme === 'dark' ? 'Включить тёмную тему' : 'Включить светлую тему')
+      : (nextTheme === 'dark' ? 'Switch to dark theme' : 'Switch to light theme');
+    const status = language === 'ru'
+      ? (theme === 'dark' ? 'Тёмная тема включена' : 'Светлая тема включена')
+      : (theme === 'dark' ? 'Dark theme is active' : 'Light theme is active');
 
     root.querySelectorAll('[data-theme-toggle]').forEach(button => {
+      if (!button.querySelector('.theme-toggle-icons')) {
+        button.insertAdjacentHTML('afterbegin', `
+          <span class="theme-toggle-icons" aria-hidden="true">
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"></path></svg>
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"></path></svg>
+          </span>
+          <span class="sr-only" data-theme-status></span>`);
+      }
       button.dataset.theme = theme;
       button.setAttribute('aria-label', label);
       button.setAttribute('title', label);
+      button.setAttribute('aria-pressed', String(theme === 'dark'));
+      const statusNode = button.querySelector('[data-theme-status]');
+      if (statusNode) statusNode.textContent = status;
     });
   }
 
@@ -164,6 +181,7 @@ window.QuartzLab = (() => {
     } catch (_) {}
 
     updateThemeToggles();
+    window.dispatchEvent(new CustomEvent('quartzlab:themechange', { detail: { theme } }));
   }
 
   function bindThemeToggles(root = document) {
@@ -197,8 +215,46 @@ window.QuartzLab = (() => {
         link.href = `/${targetLang}/`;
       }
 
-      link.addEventListener('click', () => setLanguagePreference(targetLang));
+      if (link.dataset.languageBound === 'true') {
+        return;
+      }
+
+      link.dataset.languageBound = 'true';
+      link.addEventListener('click', event => {
+        setLanguagePreference(targetLang);
+
+        if (section !== 'docs' || !location.hash) {
+          return;
+        }
+
+        const suffix = location.hash.replace(/^#(?:ru|en)-/, '');
+        const targetHash = suffix ? `#${targetLang}-${suffix}` : location.hash;
+        event.preventDefault();
+        location.assign(`${link.href.split('#')[0]}${targetHash}`);
+      });
     });
+  }
+
+  function bindPageLanguageSwitchers() {
+    const language = languageFromPath();
+    const parts = location.pathname.split('/').filter(Boolean);
+    const section = parts[1] || '';
+    if ((section === 'plugins' || section === 'docs') && parts[2]) {
+      bindLanguageSwitchers(language, decodeURIComponent(parts[2]), section);
+      if (section === 'docs' && location.hash) {
+        const target = document.querySelector(location.hash);
+        if (target) {
+          const alignTarget = () => requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+          if (document.readyState === 'complete') {
+            alignTarget();
+          } else {
+            window.addEventListener('load', alignTarget, { once: true });
+          }
+        }
+      }
+      return;
+    }
+    bindLanguageSwitchers(language, '', section === 'about' ? 'about' : '');
   }
 
   function youtubeId(url) {
@@ -277,10 +333,12 @@ window.QuartzLab = (() => {
     document.addEventListener('DOMContentLoaded', () => {
       decorateSupportLinks();
       bindThemeToggles();
+      bindPageLanguageSwitchers();
     }, { once: true });
   } else {
     decorateSupportLinks();
     bindThemeToggles();
+    bindPageLanguageSwitchers();
   }
 
   return api;

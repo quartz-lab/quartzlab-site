@@ -48,7 +48,7 @@
         document.documentElement.lang = language;
         document.title = language === "ru"
           ? "ClipSwitch — документация QuartzLab"
-          : "ClipSwitch Documentation — QuartzLab";
+          : "ClipSwitch Документация — QuartzLab";
 
         buttons.forEach(button => {
           button.setAttribute("aria-pressed", String(button.dataset.language === language));

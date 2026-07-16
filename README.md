@@ -8,13 +8,12 @@
 - `functions/go/support.js` пишет обезличенное событие в Cloudflare Analytics Engine и затем всегда делает redirect на Boosty.
 - `catalog/plugins.config.json` хранит ручной каталог плагинов: ссылка на репозиторий и локализованный контент.
 - `scripts/sync-plugins.mjs` подтягивает метаданные и документацию только из последнего опубликованного GitHub release каждого плагина.
-- Ссылки на страницы плагинов и документации ведут на query-маршруты:
-  - `/plugin.html?lang=en&slug={slug}`
-  - `/plugin.html?lang=ru&slug={slug}`
-  - `/docs.html?lang=en&slug={slug}`
-  - `/docs.html?lang=ru&slug={slug}`
-- Синхронизированная документация хранится во внутренних статических файлах `public/generated-docs/{lang}/{slug}/`.
-- Устаревшие сгенерированные docs и старые clean-route директории для slug, которых больше нет в `catalog/plugins.config.json`, удаляются автоматически.
+- Один синхронизатор создаёт данные каталога, локальную веб-копию документации, страницы плагинов, страницы документации, `sitemap.xml` и `robots.txt`.
+- Канонические страницы — реальные статические файлы:
+  - `public/{lang}/plugins/{slug}/index.html`
+  - `public/{lang}/docs/{slug}/index.html`
+- Внутренние ресурсы синхронизированной документации хранятся в `public/generated-docs/{lang}/{slug}/`, а основной текст документации входит прямо в каноническую HTML-страницу.
+- Устаревшие сгенерированные docs и каталоги slug, которых больше нет в `catalog/plugins.config.json`, удаляются автоматически.
 
 ## Что делает синхронизатор
 
@@ -25,9 +24,12 @@
 3. Берет последний опубликованный release как источник `package.json`, `LICENSE*` и `Documentation~`.
 4. Проверяет, что `package.json.version` совпадает с `release.tag_name` с учетом опционального префикса `v`.
 5. Суммирует `download_count` только по ZIP-assets всех опубликованных releases.
-6. Копирует `Documentation~` на сайт целиком, включая HTML, CSS, JS и изображения, в `public/generated-docs/{lang}/{slug}/`.
-7. Для HTML-документации извлекает inline `<style>` и `<script>` в локальные файлы, чтобы документация работала под строгим CSP без `unsafe-inline`.
+6. Копирует `Documentation~` на сайт, включая HTML, CSS, JS и изображения, в `public/generated-docs/{lang}/{slug}/`, не меняя оригиналы в репозитории плагина.
+7. Для веб-копии оставляет только язык маршрута, убирает внутренний выбор языка и офлайн-пояснения, а inline `<style>` и `<script>` извлекает в локальные файлы для строгого CSP без `unsafe-inline`.
 8. Обновляет `public/data/plugins.json` и `public/data/downloads.json`.
+9. Генерирует локализованные страницы плагинов и документации с `title`, `description`, canonical и hreflang, затем обновляет `sitemap.xml` и `robots.txt`.
+
+Канонический origin сайта — `https://quartzlab.ru`. Генератор использует его для sitemap, robots.txt, canonical, hreflang, Open Graph и остальных абсолютных публичных URL.
 
 Если release невалиден, версия не совпадает или документация содержит запрещенные удаленные ресурсы, синхронизация завершается ошибкой.
 
@@ -85,7 +87,7 @@ Workflow `.github/workflows/sync-plugin-releases.yml` запускается:
 
 1. Запускает `node scripts/sync-plugins.mjs`
 2. Запускает `node --test`
-3. Коммитит сгенерированные изменения в `public/`, включая `public/data` и `public/generated-docs`.
+3. Коммитит сгенерированные изменения в `public/`, включая данные, документацию, статические страницы и SEO-файлы.
 
 Опциональный secret:
 
@@ -157,4 +159,4 @@ ORDER BY clicks DESC;
 - Для синхронизации используется только `GITHUB_PUBLIC_READ_TOKEN`, если он явно задан.
 - Документация с удаленными скриптами, удаленными стилями, `meta refresh`, `base` и `javascript:` URL отклоняется.
 - CSP задается один раз в `public/_headers`, без конфликтующих повторов.
-- Старые clean URLs `/en|ru/plugins/{slug}` и `/en|ru/docs/{slug}` остаются только как обычные `302` redirects на query-маршруты.
+- Страницы `/en|ru/plugins/{slug}/` и `/en|ru/docs/{slug}/` обслуживаются напрямую как статические файлы; общих динамических shell-страниц для них нет.

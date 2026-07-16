@@ -7,6 +7,12 @@ import {
   rm,
   writeFile,
 } from 'node:fs/promises';
+import {
+  renderDocumentationPage,
+  renderPluginPage,
+  renderRobotsTxt,
+  renderSitemap,
+} from './site-render.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CONFIG_PATH = path.join(ROOT, 'catalog', 'plugins.config.json');
@@ -122,13 +128,68 @@ export function assertReleaseVersionMatchesTag(packageJsonVersion, releaseTagNam
   }
 }
 
+function removeLanguageContainer(html, attribute, language) {
+  const patterns = [
+    new RegExp(`<article\\b[^>]*\\b${attribute}\\s*=\\s*(["'])${language}\\1[^>]*>[\\s\\S]*?<\\/article>`, 'gi'),
+    new RegExp(`<div\\b[^>]*\\b${attribute}\\s*=\\s*(["'])${language}\\1[^>]*>[\\s\\S]*?<\\/div>`, 'gi'),
+  ];
+  return patterns.reduce((output, pattern) => output.replace(pattern, ''), html);
+}
+
+function revealLanguageContainer(html, attribute, language) {
+  const pattern = new RegExp(`<([a-z][a-z0-9-]*)\\b([^>]*\\b${attribute}\\s*=\\s*(["'])${language}\\3[^>]*)>`, 'gi');
+  return html.replace(pattern, (_match, tag, attributes) => `<${tag}${attributes.replace(/\s+hidden(?:\s*=\s*(["'])hidden\1)?/gi, '')}>`);
+}
+
+export function cleanDocumentationHtml(html, routeLanguage) {
+  const otherLanguage = routeLanguage === 'ru' ? 'en' : 'ru';
+  let output = String(html);
+
+  output = output.replace(
+    /<header\b[^>]*class\s*=\s*(["'])[^"']*\btopbar\b[^"']*\1[^>]*>[\s\S]*?<\/header>/gi,
+    '',
+  );
+  output = output.replace(
+    /<div\b[^>]*class\s*=\s*(["'])[^"']*\blanguage-switch\b[^"']*\1[^>]*>[\s\S]*?<\/div>/gi,
+    '',
+  );
+  output = removeLanguageContainer(output, 'data-document-language', otherLanguage);
+  output = removeLanguageContainer(output, 'data-toc-language', otherLanguage);
+  output = revealLanguageContainer(output, 'data-document-language', routeLanguage);
+  output = revealLanguageContainer(output, 'data-toc-language', routeLanguage);
+
+  const websiteOnlyPhrases = [
+    /Офлайн-документация/gi,
+    /Offline documentation/gi,
+    /Offline HTML/gi,
+    /Работает без подключения к интернету/gi,
+    /Works without (?:an )?internet connection/gi,
+    /Works fully offline/gi,
+  ];
+  for (const phrase of websiteOnlyPhrases) {
+    output = output.replace(phrase, '');
+  }
+
+  output = routeLanguage === 'ru'
+    ? output.replace(/Documentation(?!~)/g, 'Документация')
+    : output.replace(/Документация/g, 'Documentation');
+
+  output = output
+    .replace(/<p\b([^>]*)>\s*<\/p>/gi, '')
+    .replace(/<span\b([^>]*)>\s*<\/span>/gi, '')
+    .replace(/\s*·\s*RU\s*\/\s*EN/gi, '')
+    .replace(/\s*·\s*EN\s*\/\s*RU/gi, '');
+
+  return output;
+}
+
 export function transformDocumentationHtml(html, routeLanguage) {
   const assets = [];
   const directory = '.';
   let styleIndex = 0;
   let scriptIndex = 0;
 
-  let output = String(html);
+  let output = cleanDocumentationHtml(html, routeLanguage);
 
   output = output.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attrs, cssText) => {
     styleIndex += 1;
@@ -195,7 +256,11 @@ export function transformDocumentationHtml(html, routeLanguage) {
       '(() => {',
       `  const lang = ${JSON.stringify(routeLanguage)};`,
       '  if (lang === "en" || lang === "ru") {',
-      '    try { localStorage.setItem("quartzlab-doc-language", lang); } catch (_) {}',
+      '    document.documentElement.dataset.routeLanguage = lang;',
+      '    try {',
+      '      localStorage.setItem("quartzlab-language", lang);',
+      '      localStorage.setItem("quartzlab-doc-language", lang);',
+      '    } catch (_) {}',
       '  }',
       '})();',
       '',
@@ -206,6 +271,8 @@ export function transformDocumentationHtml(html, routeLanguage) {
   if (/<style\b/i.test(output) || /<script(?![^>]*\bsrc=)/i.test(output)) {
     throw new Error('Documentation HTML still contains inline style or script blocks after extraction.');
   }
+
+  output = output.replace(/[ \t]+$/gm, '');
 
   return { html: output, assets };
 }
@@ -503,7 +570,7 @@ async function loadDocumentationFiles(owner, repo, ref, token) {
 
 async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles) {
   if (!documentationFiles.length) {
-    return false;
+    return null;
   }
 
   const targetDirectory = safeResolve(generatedDocsBasePath(routeLanguage), slug);
@@ -511,6 +578,7 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
   await mkdir(targetDirectory, { recursive: true });
 
   let hasIndex = false;
+  let indexHtml = null;
 
   for (const file of documentationFiles) {
     const targetPath = safeResolve(targetDirectory, file.relativePath);
@@ -520,6 +588,10 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
       validateDocumentationTextFile(file.relativePath, sourceText);
       const { html, assets } = transformDocumentationHtml(sourceText, routeLanguage);
       await writeTextFile(targetPath, html);
+
+      if (file.relativePath === 'index.html') {
+        indexHtml = html;
+      }
 
       for (const asset of assets) {
         const assetPath = safeResolve(targetDirectory, path.posix.dirname(file.relativePath), asset.relativePath);
@@ -542,7 +614,7 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
     throw new Error(`Documentation for ${slug} is missing Documentation~/index.html`);
   }
 
-  return true;
+  return { indexHtml };
 }
 
 export async function loadPluginConfig() {
@@ -660,6 +732,7 @@ export async function syncPlugins() {
 
   const plugins = [];
   const downloads = {};
+  const documentationPages = new Map();
 
   for (const config of configs) {
     validatePluginConfig(config);
@@ -678,10 +751,14 @@ export async function syncPlugins() {
 
     const documentationFiles = await loadDocumentationFiles(owner, repo, latestRelease.tag_name, token);
     let hasDocumentation = false;
+    const documentationByLanguage = {};
     if (documentationFiles.length) {
       for (const language of SUPPORTED_LANGUAGES) {
         const written = await writeDocumentationRoutes(repo.toLowerCase(), language, documentationFiles);
-        hasDocumentation = hasDocumentation || written;
+        if (written?.indexHtml) {
+          documentationByLanguage[language] = written.indexHtml;
+          hasDocumentation = true;
+        }
       }
     }
 
@@ -695,6 +772,9 @@ export async function syncPlugins() {
 
     plugins.push(plugin);
     downloads[plugin.slug] = sumPublishedReleaseAssetCount(releases);
+    if (hasDocumentation) {
+      documentationPages.set(plugin.slug, documentationByLanguage);
+    }
   }
 
   await cleanupGeneratedOutput(activeSlugs);
@@ -715,6 +795,26 @@ export async function syncPlugins() {
     path.join(DATA_PATH, 'downloads.json'),
     `${JSON.stringify({ generatedAt, plugins: downloads }, null, 2)}\n`,
   );
+
+  for (const plugin of plugins) {
+    for (const language of SUPPORTED_LANGUAGES) {
+      await writeTextFile(
+        path.join(PUBLIC_PATH, language, 'plugins', plugin.slug, 'index.html'),
+        renderPluginPage(plugin, downloads[plugin.slug], language),
+      );
+
+      const documentationHtml = documentationPages.get(plugin.slug)?.[language];
+      if (plugin.documentationAvailable && documentationHtml) {
+        await writeTextFile(
+          path.join(PUBLIC_PATH, language, 'docs', plugin.slug, 'index.html'),
+          renderDocumentationPage(plugin, language, documentationHtml),
+        );
+      }
+    }
+  }
+
+  await writeTextFile(path.join(PUBLIC_PATH, 'sitemap.xml'), renderSitemap(plugins));
+  await writeTextFile(path.join(PUBLIC_PATH, 'robots.txt'), renderRobotsTxt());
 
   return {
     generatedAt,

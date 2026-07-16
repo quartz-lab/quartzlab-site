@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://quartzlab.ru/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/ru/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/en/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/about/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/about/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/about/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/ru/about/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/about/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/about/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/about/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/en/plugins/clipswitch/</loc>
+    <lastmod>2026-07-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/plugins/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/plugins/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/plugins/clipswitch/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/ru/plugins/clipswitch/</loc>
+    <lastmod>2026-07-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/plugins/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/plugins/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/plugins/clipswitch/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/en/docs/clipswitch/</loc>
+    <lastmod>2026-07-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/docs/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/docs/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/docs/clipswitch/" />
+  </url>
+  <url>
+    <loc>https://quartzlab.ru/ru/docs/clipswitch/</loc>
+    <lastmod>2026-07-14</lastmod>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/docs/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/docs/clipswitch/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/en/docs/clipswitch/" />
+  </url>
+</urlset>

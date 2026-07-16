@@ -5,7 +5,7 @@
   X-Frame-Options: SAMEORIGIN
   Cross-Origin-Resource-Policy: same-origin
   Origin-Agent-Cluster: ?1
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com; media-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-7nSsYuXsMi/PgZnimb4OQB3JQvpYjRK1Lm+YzLizRJY='; style-src 'self'; img-src 'self' data: https://i.ytimg.com; media-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests
 
 /assets/*
   Cache-Control: public, max-age=604800, immutable

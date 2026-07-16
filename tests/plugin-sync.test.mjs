@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   assertReleaseVersionMatchesTag,
+  cleanDocumentationHtml,
   detectLicense,
   formatUnityVersion,
   normalizeDocsRelativePath,
@@ -119,4 +120,25 @@ test('transformDocumentationHtml extracts inline assets and injects local helper
     assets.map(asset => asset.relativePath).sort(),
     ['__doc-inline-script-1.js', '__doc-inline-style-1.css', '__route-language.js'],
   );
+});
+
+test('cleanDocumentationHtml keeps only the route language and removes offline-only chrome', () => {
+  const html = cleanDocumentationHtml(`<!doctype html>
+<html lang="en"><body>
+  <header class="topbar"><a class="brand">QuartzLab</a><span>ClipSwitch Documentation</span></header>
+  <div class="language-switch"><button data-language="ru">RU</button><button data-language="en">EN</button></div>
+  <div data-toc-language="ru"><a href="#ru-overview">Обзор</a></div>
+  <div data-toc-language="en" hidden><a href="#en-overview">Overview</a></div>
+  <article data-document-language="ru"><h1 id="ru-overview">Документация</h1></article>
+  <article data-document-language="en" hidden><h1 id="en-overview">Documentation</h1><span>Offline documentation</span></article>
+</body></html>`, 'en');
+
+  assert.match(html, /id="en-overview"/);
+  assert.match(html, /data-document-language="en"(?![^>]*hidden)/);
+  assert.match(html, /data-toc-language="en"(?![^>]*hidden)/);
+  assert.doesNotMatch(html, /id="ru-overview"/);
+  assert.doesNotMatch(html, /language-switch/);
+  assert.doesNotMatch(html, /class="topbar"/);
+  assert.doesNotMatch(html, /ClipSwitch Documentation/);
+  assert.doesNotMatch(html, /offline documentation/i);
 });
