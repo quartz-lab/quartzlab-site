@@ -28,8 +28,11 @@
 7. Для веб-копии оставляет только язык маршрута, убирает внутренний выбор языка и офлайн-пояснения, а inline `<style>` и `<script>` извлекает в локальные файлы для строгого CSP без `unsafe-inline`.
 8. Обновляет `public/data/plugins.json` и `public/data/downloads.json`.
 9. Генерирует локализованные страницы плагинов и документации с `title`, `description`, canonical и hreflang, затем обновляет `sitemap.xml` и `robots.txt`.
+10. Создаёт content-hashed копии всех публичных CSS/JS, обновляет ссылки во всех HTML и удаляет fingerprinted-assets предыдущей сборки.
 
 Канонический origin сайта — `https://quartzlab.ru`. Генератор использует его для sitemap, robots.txt, canonical, hreflang, Open Graph и остальных абсолютных публичных URL.
+
+HTML, JSON и другие изменяемые ответы отдаются с `Cache-Control: no-cache`. Только файлы из `public/hashed-assets/`, имена которых включают SHA-256 содержимого, получают годовой `immutable` cache policy.
 
 Если release невалиден, версия не совпадает или документация содержит запрещенные удаленные ресурсы, синхронизация завершается ошибкой.
 

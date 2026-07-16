@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
@@ -11,6 +11,21 @@ const PUBLIC = path.join(ROOT, 'public');
 
 async function readPublic(...segments) {
   return readFile(path.join(PUBLIC, ...segments), 'utf8');
+}
+
+async function listFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await listFiles(target));
+    if (entry.isFile()) files.push(target);
+  }
+  return files;
+}
+
+async function readAssetManifest() {
+  return JSON.parse(await readPublic('asset-manifest.json'));
 }
 
 test('sync output contains canonical static plugin pages with content and SEO', async () => {
@@ -87,17 +102,72 @@ test('public pages initialize the saved theme before styles without weakening CS
     ['ru', 'docs', 'clipswitch', 'index.html'],
   ];
   const themeMarkup = `<script>${THEME_INIT_SCRIPT}</script>`;
+  const manifest = await readAssetManifest();
+  const stylesPath = manifest.assets['/styles.css'];
 
   for (const page of pages) {
     const html = await readPublic(...page);
     assert.ok(html.indexOf(themeMarkup) > -1, `${page.join('/')} has the inline theme initializer`);
-    assert.ok(html.indexOf(themeMarkup) < html.indexOf('/styles.css'), `${page.join('/')} initializes theme before site styles`);
+    assert.ok(html.indexOf(themeMarkup) < html.indexOf(stylesPath), `${page.join('/')} initializes theme before site styles`);
   }
 
   const headers = await readPublic('_headers');
   const hash = createHash('sha256').update(THEME_INIT_SCRIPT).digest('base64');
   assert.match(headers, new RegExp(`script-src 'self' 'sha256-${hash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`));
   assert.doesNotMatch(headers, /script-src[^\n]*'unsafe-inline'/);
+});
+
+test('every external CSS and JavaScript reference uses a current content hash', async () => {
+  const manifest = await readAssetManifest();
+  const manifestPaths = Object.values(manifest.assets).sort();
+  const manifestPathSet = new Set(manifestPaths);
+  const publicFiles = await listFiles(PUBLIC);
+  const htmlFiles = publicFiles.filter(file => path.extname(file).toLowerCase() === '.html');
+
+  assert.ok(manifestPaths.length > 0);
+  for (const [sourcePath, assetPath] of Object.entries(manifest.assets)) {
+    assert.match(sourcePath, /^\/.+\.(?:css|js)$/);
+    assert.match(assetPath, /^\/hashed-assets\/.+\.[a-f0-9]{12}\.(?:css|js)$/);
+
+    const assetFile = path.join(PUBLIC, ...assetPath.slice(1).split('/'));
+    const contents = await readFile(assetFile);
+    const expectedHash = createHash('sha256').update(contents).digest('hex').slice(0, 12);
+    assert.match(assetPath, new RegExp(`\\.${expectedHash}\\.(?:css|js)$`));
+  }
+
+  for (const htmlFile of htmlFiles) {
+    const html = await readFile(htmlFile, 'utf8');
+    for (const match of html.matchAll(/\b(?:src|href)="([^\"]+\.(?:css|js)(?:[?#][^\"]*)?)"/gi)) {
+      const pathname = match[1].split(/[?#]/, 1)[0];
+      assert.ok(manifestPathSet.has(pathname), `${path.relative(PUBLIC, htmlFile)} references current hashed asset ${pathname}`);
+    }
+  }
+
+  const generatedAssetFiles = publicFiles
+    .filter(file => file.startsWith(path.join(PUBLIC, 'hashed-assets')))
+    .map(file => `/${path.relative(PUBLIC, file).replaceAll(path.sep, '/')}`)
+    .sort();
+  assert.deepEqual(generatedAssetFiles, manifestPaths, 'no stale fingerprinted assets remain');
+});
+
+test('Cloudflare cache headers revalidate mutable output and only cache hashed assets immutably', async () => {
+  const headers = await readPublic('_headers');
+  assert.match(headers, /\/hashed-assets\/\*\s+Cache-Control: public, max-age=31536000, immutable/);
+  assert.equal((headers.match(/immutable/g) || []).length, 1);
+
+  for (const route of ['/data/*', '/generated-docs/*', '/assets/*', '/en/*', '/ru/*', '/asset-manifest.json', '/robots.txt', '/sitemap.xml']) {
+    const escapedRoute = route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(headers, new RegExp(`${escapedRoute}\\s+Cache-Control: no-cache`));
+  }
+
+  for (const securityHeader of [
+    'X-Content-Type-Options: nosniff',
+    'Referrer-Policy: strict-origin-when-cross-origin',
+    'Content-Security-Policy:',
+    'X-Frame-Options: SAMEORIGIN',
+  ]) {
+    assert.match(headers, new RegExp(securityHeader));
+  }
 });
 
 test('localized footers use descriptive site navigation and synchronized catalog wording', async () => {

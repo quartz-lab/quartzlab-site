@@ -13,6 +13,7 @@ import {
   renderRobotsTxt,
   renderSitemap,
 } from './site-render.mjs';
+import { fingerprintPublicAssets } from './site-assets.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CONFIG_PATH = path.join(ROOT, 'catalog', 'plugins.config.json');
@@ -815,8 +816,10 @@ export async function syncPlugins() {
 
   await writeTextFile(path.join(PUBLIC_PATH, 'sitemap.xml'), renderSitemap(plugins));
   await writeTextFile(path.join(PUBLIC_PATH, 'robots.txt'), renderRobotsTxt());
+  const assetManifest = await fingerprintPublicAssets(PUBLIC_PATH);
 
   return {
+    assetManifest,
     generatedAt,
     downloads,
     plugins,
