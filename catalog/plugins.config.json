@@ -2,7 +2,7 @@
   {
     "repository": "https://github.com/quartz-lab/clipswitch",
     "featured": true,
-    "cover": "/assets/covers/clipswitch.svg",
+    "cover": "/assets/plugins/clipswitch/screenshot-library.png",
     "category": {
       "en": "Audio",
       "ru": "Аудио"
@@ -10,10 +10,34 @@
     "media": [
       {
         "type": "image",
-        "src": "/assets/covers/clipswitch.svg",
+        "src": "/assets/plugins/clipswitch/screenshot-library.png",
         "alt": {
-          "en": "ClipSwitch editor window preview",
-          "ru": "Превью окна ClipSwitch"
+          "en": "ClipSwitch audio library window",
+          "ru": "Окно библиотеки аудио ClipSwitch"
+        }
+      },
+      {
+        "type": "image",
+        "src": "/assets/plugins/clipswitch/screenshot-editor-01.png",
+        "alt": {
+          "en": "ClipSwitch audio editor window",
+          "ru": "Окно редактора аудио ClipSwitch"
+        }
+      },
+      {
+        "type": "image",
+        "src": "/assets/plugins/clipswitch/screenshot-editor-02.png",
+        "alt": {
+          "en": "ClipSwitch audio editor window",
+          "ru": "Окно редактора аудио ClipSwitch"
+        }
+      },
+      {
+        "type": "image",
+        "src": "/assets/plugins/clipswitch/screenshot-settings.png",
+        "alt": {
+          "en": "ClipSwitch audio settings window",
+          "ru": "Окно настроек аудио ClipSwitch"
         }
       }
     ],
@@ -37,7 +61,7 @@
       },
       "ru": {
         "subtitle": "Замена, сравнение и обработка аудиоассетов Unity без потери ссылок.",
-        "description": "ClipSwitch — компактный рабочий инструмент для Unity Editor, который позволяет прослушивать, заменять, сравнивать и пакетно обрабатывать AudioClip с сохранением GUID и существующих ссылок проекта.",
+        "description": "ClipSwitch — компактный рабочий плагин для Unity Editor, который позволяет прослушивать, заменять, сравнивать и пакетно обрабатывать AudioClip с сохранением GUID и существующих ссылок проекта.",
         "features": [
           "Waveform-превью и мгновенное прослушивание с любой позиции",
           "Безопасная замена файлов с сохранением GUID и ссылок в сценах и префабах",

@@ -1,6 +1,10 @@
 {
   "version": 1,
+<<<<<<< HEAD
   "generatedAt": "2026-07-18T08:28:04.247Z",
+=======
+  "generatedAt": "2026-07-18T15:51:08.558Z",
+>>>>>>> 89e3f73 (docs: refresh ClipSwitch presentation)
   "assets": {
     "/catalog.js": "/hashed-assets/catalog.492136e88dda.js",
     "/docs-theme.css": "/hashed-assets/docs-theme.a26e8dd7397f.css",

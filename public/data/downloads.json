@@ -1,6 +1,12 @@
 {
+<<<<<<< HEAD
   "generatedAt": "2026-07-18T08:28:04.203Z",
   "plugins": {
     "clipswitch": 3
+=======
+  "generatedAt": "2026-07-18T15:51:08.451Z",
+  "plugins": {
+    "clipswitch": 4
+>>>>>>> 89e3f73 (docs: refresh ClipSwitch presentation)
   }
 }
