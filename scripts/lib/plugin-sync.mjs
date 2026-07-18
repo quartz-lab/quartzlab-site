@@ -7,6 +7,8 @@ import {
   rm,
   writeFile,
 } from 'node:fs/promises';
+import { atomicWriteJson } from './fs-utils.mjs';
+import { readJsonFile } from './json-utils.mjs';
 import {
   renderDocumentationPage,
   renderPluginPage,
@@ -342,10 +344,6 @@ async function fetchGitHubRaw(url, token) {
   }
 }
 
-async function readJsonFile(filePath) {
-  return JSON.parse(await readFile(filePath, 'utf8'));
-}
-
 function safeResolve(basePath, ...segments) {
   const targetPath = path.resolve(basePath, ...segments);
   const relative = path.relative(basePath, targetPath);
@@ -619,7 +617,11 @@ async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles)
 }
 
 export async function loadPluginConfig() {
-  return readJsonFile(CONFIG_PATH);
+  const configs = await readJsonFile(CONFIG_PATH);
+  if (!Array.isArray(configs)) {
+    throw new TypeError(`Plugin configuration must be a JSON array: ${CONFIG_PATH}`);
+  }
+  return configs;
 }
 
 export async function getPublicRepository(owner, repo, token) {
@@ -726,6 +728,10 @@ export async function syncPlugins() {
   const token = process.env.GITHUB_PUBLIC_READ_TOKEN || null;
   const configs = await loadPluginConfig();
 
+  for (const config of configs) {
+    validatePluginConfig(config);
+  }
+
   await mkdir(DATA_PATH, { recursive: true });
   await mkdir(GENERATED_DOCS_PATH, { recursive: true });
 
@@ -736,8 +742,6 @@ export async function syncPlugins() {
   const documentationPages = new Map();
 
   for (const config of configs) {
-    validatePluginConfig(config);
-
     const { owner, repo } = parseGithubRepositoryUrl(config.repository);
     await getPublicRepository(owner, repo, token);
 
@@ -788,14 +792,10 @@ export async function syncPlugins() {
   });
 
   const generatedAt = new Date().toISOString();
-  await writeTextFile(
-    path.join(DATA_PATH, 'plugins.json'),
-    `${JSON.stringify(plugins, null, 2)}\n`,
-  );
-  await writeTextFile(
-    path.join(DATA_PATH, 'downloads.json'),
-    `${JSON.stringify({ generatedAt, plugins: downloads }, null, 2)}\n`,
-  );
+  const pluginsPath = path.join(DATA_PATH, 'plugins.json');
+  const downloadsPath = path.join(DATA_PATH, 'downloads.json');
+  await atomicWriteJson(pluginsPath, plugins);
+  await atomicWriteJson(downloadsPath, { generatedAt, plugins: downloads });
 
   for (const plugin of plugins) {
     for (const language of SUPPORTED_LANGUAGES) {
@@ -817,6 +817,12 @@ export async function syncPlugins() {
   await writeTextFile(path.join(PUBLIC_PATH, 'sitemap.xml'), renderSitemap(plugins));
   await writeTextFile(path.join(PUBLIC_PATH, 'robots.txt'), renderRobotsTxt());
   const assetManifest = await fingerprintPublicAssets(PUBLIC_PATH);
+
+  await Promise.all([
+    readJsonFile(pluginsPath),
+    readJsonFile(downloadsPath),
+    readJsonFile(path.join(PUBLIC_PATH, 'asset-manifest.json')),
+  ]);
 
   return {
     assetManifest,

@@ -59,7 +59,7 @@ HTML, JSON и другие изменяемые ответы отдаются с
 
 Настройки проекта:
 
-- Build command: не требуется
+- Build command: `node scripts/validate-site.mjs`
 - Build output directory: `public`
 - Wrangler config: `wrangler.jsonc`
 - Pages Functions: включены
@@ -72,11 +72,46 @@ HTML, JSON и другие изменяемые ответы отдаются с
 
 ```powershell
 node scripts/sync-plugins.mjs
+node scripts/validate-site.mjs
 node --test
-npx wrangler@latest pages dev public
+npx.cmd wrangler@latest pages dev public
 ```
 
 Примечание: локально Analytics Engine binding недоступен в `pages dev`, поэтому запись событий не выполняется, но redirect через `/go/support` продолжает работать.
+
+`scripts/validate-site.mjs` является обязательной проверкой перед deployment. Он проверяет исходный конфиг каталога, все генерируемые JSON, конфликтные маркеры, manifest и его файлы, CSS/JS-ссылки, локализованные страницы, sitemap, robots и канонический домен. Любая проблема завершает build с кодом `1`, поэтому Cloudflare Pages сохраняет предыдущую рабочую публикацию.
+
+## Режим технических работ
+
+Единственный исходный переключатель находится в `site.config.json`. Команда изменяет его, атомарно пересобирает `functions/generated/site-config.js` и проверяет согласованность конфигурации:
+
+```powershell
+node scripts/maintenance.mjs on
+node scripts/maintenance.mjs off
+node scripts/maintenance.mjs status
+```
+
+При включённом режиме корневой Pages Functions middleware возвращает полноэкранную RU/EN-страницу со статусом `503 Service Unavailable`, заголовками `Retry-After`, `Cache-Control: no-store` и `X-Robots-Tag: noindex, nofollow`. Страница не зависит от каталога и `plugins.json`. Ресурсы `/assets/*`, `/hashed-assets/*`, `/go/support` и `/cdn-cgi/*` остаются доступными.
+
+Включить и опубликовать:
+
+```powershell
+node scripts/maintenance.mjs on
+git add -A
+git commit -m "chore: enable maintenance mode"
+git push origin main
+```
+
+Выключить и опубликовать:
+
+```powershell
+node scripts/maintenance.mjs off
+git add -A
+git commit -m "chore: disable maintenance mode"
+git push origin main
+```
+
+Переключение вступает в силу только после успешного Cloudflare Pages deployment соответствующего commit.
 
 ## GitHub Actions
 
@@ -89,8 +124,9 @@ Workflow `.github/workflows/sync-plugin-releases.yml` запускается:
 Он:
 
 1. Запускает `node scripts/sync-plugins.mjs`
-2. Запускает `node --test`
-3. Коммитит сгенерированные изменения в `public/`, включая данные, документацию, статические страницы и SEO-файлы.
+2. Запускает `node scripts/validate-site.mjs`
+3. Запускает `node --test`
+4. Коммитит сгенерированные изменения в `public/`, включая данные, документацию, статические страницы и SEO-файлы.
 
 Опциональный secret:
 

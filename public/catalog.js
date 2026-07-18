@@ -3,9 +3,9 @@
 const Q = window.QuartzLab;
 const lang = Q.languageFromPath();
 const ui = lang === 'ru' ? {
-  all:'Все', loading:'Загрузка каталога…', failed:'Не удалось загрузить каталог', search:'Поиск плагинов', sort:'Сортировка', featured:'Рекомендуемые', popular:'Популярные', newest:'Сначала новые', name:'По названию', category:'Категория', compatibility:'Совместимость', reset:'Сбросить фильтры', empty:'Ничего не найдено', emptyHint:'Попробуй другую категорию или запрос.', pluginForms:['плагин','плагина','плагинов'], free:'Бесплатно', filtered:'по выбранным фильтрам', allFree:'все бесплатные', downloads:'скачиваний'
+  all:'Все', loading:'Загрузка каталога…', failed:'Не удалось загрузить каталог', unavailable:'Каталог временно недоступен. Попробуйте обновить страницу немного позже.', search:'Поиск плагинов', sort:'Сортировка', featured:'Рекомендуемые', popular:'Популярные', newest:'Сначала новые', name:'По названию', category:'Категория', compatibility:'Совместимость', reset:'Сбросить фильтры', empty:'Ничего не найдено', emptyHint:'Попробуй другую категорию или запрос.', pluginForms:['плагин','плагина','плагинов'], free:'Бесплатно', filtered:'по выбранным фильтрам', allFree:'все бесплатные', downloads:'скачиваний'
 } : {
-  all:'All', loading:'Loading catalog…', failed:'Could not load the catalog', search:'Search plugins', sort:'Sort', featured:'Featured', popular:'Popular', newest:'Newest', name:'Name', category:'Category', compatibility:'Compatibility', reset:'Reset filters', empty:'Nothing found', emptyHint:'Try another category or search query.', pluginForms:['plugin','plugins','plugins'], free:'Free', filtered:'with selected filters', allFree:'all free', downloads:'downloads'
+  all:'All', loading:'Loading catalog…', failed:'Could not load the catalog', unavailable:'The catalog is temporarily unavailable. Please try refreshing the page later.', search:'Search plugins', sort:'Sort', featured:'Featured', popular:'Popular', newest:'Newest', name:'Name', category:'Category', compatibility:'Compatibility', reset:'Reset filters', empty:'Nothing found', emptyHint:'Try another category or search query.', pluginForms:['plugin','plugins','plugins'], free:'Free', filtered:'with selected filters', allFree:'all free', downloads:'downloads'
 };
 
 const state = {plugins:[], downloads:{}, category:'__all', search:'', ltsOnly:false, sort:'featured'};
@@ -91,4 +91,4 @@ $('#sortSelect').addEventListener('change',event=>{state.sort=event.target.value
 $('#resetFilters').addEventListener('click',reset); $('#emptyReset').addEventListener('click',reset);
 document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();$('#searchInput').focus();}});
 
-Q.loadData().then(({plugins,downloads})=>{state.plugins=plugins.map(plugin=>Q.localize(plugin,lang));state.downloads=downloads;render();}).catch(error=>{$('#catalogCount').textContent=ui.failed;$('#pluginGrid').innerHTML=`<div class="empty-state"><strong>${ui.failed}</strong><span>${Q.escape(error.message)}</span></div>`;});
+Q.loadData().then(({plugins,downloads})=>{state.plugins=plugins.map(plugin=>Q.localize(plugin,lang));state.downloads=downloads;render();}).catch(error=>{console.error('Catalog data loading failed.',error);$('#catalogCount').textContent=ui.failed;$('#pluginGrid').innerHTML=`<div class="empty-state"><strong>${ui.failed}</strong><span>${ui.unavailable}</span></div>`;});

@@ -223,7 +223,19 @@ test('legacy dynamic shells and route functions are absent', async () => {
     await assert.rejects(access(path.join(PUBLIC, ...relativePath)));
   }
 
-  for (const relativePath of ['plugin.html.js', 'docs.html.js', '_middleware.js']) {
+  for (const relativePath of ['plugin.html.js', 'docs.html.js']) {
     await assert.rejects(access(path.join(ROOT, 'functions', relativePath)));
   }
+});
+
+test('catalog failures keep technical details in the console and show localized copy', async () => {
+  const catalog = await readPublic('catalog.js');
+  const site = await readPublic('site.js');
+  assert.match(catalog, /Каталог временно недоступен\. Попробуйте обновить страницу немного позже\./);
+  assert.match(catalog, /The catalog is temporarily unavailable\. Please try refreshing the page later\./);
+  assert.match(catalog, /console\.error\('Catalog data loading failed\.'/);
+  assert.doesNotMatch(catalog, /Q\.escape\(error\.message\)/);
+  assert.match(site, /response\.ok/);
+  assert.match(site, /content-type/);
+  assert.match(site, /response\.json\(\)/);
 });

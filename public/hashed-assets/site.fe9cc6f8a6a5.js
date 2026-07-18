@@ -289,18 +289,30 @@ window.QuartzLab = (() => {
     });
   }
 
-  async function loadData() {
-    const [pluginsResponse, downloadsResponse] = await Promise.all([
-      fetch('/data/plugins.json'),
-      fetch('/data/downloads.json'),
-    ]);
-
-    if (!pluginsResponse.ok) {
-      throw new Error(`Catalog HTTP ${pluginsResponse.status}`);
+  async function readJsonResponse(url) {
+    const response = await fetch(url);
+    const responseUrl = response.url || new URL(url, window.location.href).href;
+    if (!response.ok) {
+      throw new Error(`Catalog request failed: ${responseUrl} returned HTTP ${response.status}`);
     }
 
-    const plugins = await pluginsResponse.json();
-    const downloads = downloadsResponse.ok ? await downloadsResponse.json() : { plugins: {} };
+    const contentType = response.headers.get('content-type') || '';
+    if (!/(?:application|text)\/(?:[\w.+-]*\+)?json\b/i.test(contentType)) {
+      throw new Error(`Catalog request failed: ${responseUrl} returned HTTP ${response.status} with Content-Type "${contentType || 'missing'}"`);
+    }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      throw new Error(`Catalog JSON is invalid: ${responseUrl} returned HTTP ${response.status}: ${error.message}`, { cause: error });
+    }
+  }
+
+  async function loadData() {
+    const [plugins, downloads] = await Promise.all([
+      readJsonResponse('/data/plugins.json'),
+      readJsonResponse('/data/downloads.json'),
+    ]);
     return { plugins, downloads: downloads.plugins || {} };
   }
 

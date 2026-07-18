@@ -13,6 +13,7 @@ import {
   sumPublishedReleaseAssetCount,
   transformDocumentationHtml,
 } from '../scripts/lib/plugin-sync.mjs';
+import { parseJsonText } from '../scripts/lib/json-utils.mjs';
 
 test('parseGithubRepositoryUrl accepts repository root URLs', () => {
   assert.deepEqual(
@@ -90,6 +91,18 @@ test('assertReleaseVersionMatchesTag rejects mismatched package and release vers
   assert.throws(
     () => assertReleaseVersionMatchesTag('1.2.4', 'v1.2.3'),
     /does not match release tag/i,
+  );
+});
+
+test('source JSON errors include file path, line, column, and parser explanation', () => {
+  assert.throws(
+    () => parseJsonText('[\n  { "name": "ClipSwitch", }\n]\n', 'catalog/plugins.config.json'),
+    error => {
+      assert.match(error.message, /catalog\/plugins\.config\.json/);
+      assert.match(error.message, /line 2, column \d+/);
+      assert.match(error.message, /Expected|property|JSON/i);
+      return true;
+    },
   );
 });
 

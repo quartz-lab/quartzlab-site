@@ -7,6 +7,8 @@ on:
   push:
     paths:
       - "catalog/plugins.config.json"
+      - "site.config.json"
+      - "functions/**"
       - "scripts/**"
       - ".github/workflows/sync-plugin-releases.yml"
 
@@ -31,6 +33,9 @@ jobs:
 
       - name: Sync latest published releases
         run: node scripts/sync-plugins.mjs
+
+      - name: Validate generated site
+        run: node scripts/validate-site.mjs
 
       - name: Run tests
         run: node --test

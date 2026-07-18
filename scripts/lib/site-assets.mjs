@@ -7,6 +7,7 @@ import {
   rm,
   writeFile,
 } from 'node:fs/promises';
+import { atomicWriteJson } from './fs-utils.mjs';
 
 const HASH_LENGTH = 12;
 const HASHED_DIRECTORY = 'hashed-assets';
@@ -33,22 +34,33 @@ async function listFiles(directory) {
 }
 
 async function readPreviousManifest(publicPath) {
+  const manifestPath = path.join(publicPath, MANIFEST_FILE);
+  let contents;
   try {
-    const manifest = JSON.parse(await readFile(path.join(publicPath, MANIFEST_FILE), 'utf8'));
-    if (!manifest || typeof manifest.assets !== 'object' || Array.isArray(manifest.assets)) {
-      throw new Error('Asset manifest has an invalid assets map');
-    }
-    return manifest;
+    contents = await readFile(manifestPath, 'utf8');
   } catch (error) {
     if (error?.code === 'ENOENT') return null;
     throw error;
   }
+
+  try {
+    const manifest = JSON.parse(contents);
+    if (!manifest || typeof manifest.assets !== 'object' || Array.isArray(manifest.assets)) {
+      throw new TypeError('the manifest does not contain a valid assets map');
+    }
+    return manifest;
+  } catch (error) {
+    if (!(error instanceof SyntaxError) && !(error instanceof TypeError)) throw error;
+    console.warn(
+      `[site-assets] Ignoring invalid generated cache ${manifestPath}: ${error.message}. `
+      + 'Hashed assets and the manifest will be rebuilt.',
+    );
+    return null;
+  }
 }
 
 async function restoreSourceAssetReferences(publicPath, manifest) {
-  if (!manifest) return;
-
-  const reverseEntries = Object.entries(manifest.assets)
+  const reverseEntries = Object.entries(manifest?.assets || {})
     .filter(([source, hashed]) => typeof source === 'string' && typeof hashed === 'string')
     .map(([source, hashed]) => [hashed, source])
     .sort((left, right) => right[0].length - left[0].length);
@@ -60,6 +72,10 @@ async function restoreSourceAssetReferences(publicPath, manifest) {
     for (const [hashed, source] of reverseEntries) {
       restored = restored.replaceAll(hashed, source);
     }
+    restored = restored.replace(
+      /\/hashed-assets\/([^"'?#]+)\.([a-f\d]{12})(\.(?:css|js))(?=[?#["'])/gi,
+      '/$1$3',
+    );
     if (restored !== original) {
       await writeFile(htmlFile, restored, 'utf8');
     }
@@ -170,11 +186,7 @@ export async function fingerprintPublicAssets(publicPath) {
     generatedAt: new Date().toISOString(),
     assets,
   };
-  await writeFile(
-    path.join(publicPath, MANIFEST_FILE),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-    'utf8',
-  );
+  await atomicWriteJson(path.join(publicPath, MANIFEST_FILE), manifest);
 
   return manifest;
 }

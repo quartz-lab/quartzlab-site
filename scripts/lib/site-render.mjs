@@ -28,6 +28,12 @@ const UI = {
     license: 'License',
     mediaImage: 'Screenshot',
     mediaVideo: 'Video',
+    mediaOpen: 'Open image full screen',
+    mediaClose: 'Close full-screen image',
+    mediaPrevious: 'Previous image',
+    mediaNext: 'Next image',
+    mediaDialog: 'Full-screen image viewer',
+    mediaPlay: 'Play video',
     minimumUnity: 'Minimum Unity',
     navLabel: 'Main navigation',
     plugins: 'Plugins',
@@ -60,6 +66,12 @@ const UI = {
     license: 'Лицензия',
     mediaImage: 'Скриншот',
     mediaVideo: 'Видео',
+    mediaOpen: 'Открыть изображение на весь экран',
+    mediaClose: 'Закрыть полноэкранное изображение',
+    mediaPrevious: 'Предыдущее изображение',
+    mediaNext: 'Следующее изображение',
+    mediaDialog: 'Полноэкранный просмотр изображения',
+    mediaPlay: 'Воспроизвести видео',
     minimumUnity: 'Минимальная Unity',
     navLabel: 'Главная навигация',
     plugins: 'Плагины',
@@ -194,17 +206,19 @@ function youtubeId(url) {
   return match ? match[1] : '';
 }
 
-function mediaElement(item, plugin, language, autoplay = false) {
+function mediaElement(item, plugin, language, index = 0) {
+  const ui = UI[language];
+  const title = item.title?.[language] || item.alt?.[language] || plugin.name;
   if (item.type === 'youtube') {
     const id = youtubeId(item.url);
     if (!id) return '';
-    const query = autoplay ? '?autoplay=1' : '';
-    return `<iframe src="https://www.youtube-nocookie.com/embed/${escapeHtml(id)}${query}" title="${escapeHtml(item.title?.[language] || plugin.name)}" allow="${autoplay ? 'autoplay; ' : ''}accelerometer; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    const poster = item.poster || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    return `<button class="hero-media-action" type="button" data-activate-media="${index}" aria-label="${escapeHtml(`${ui.mediaPlay}: ${title}`)}"><img src="${escapeHtml(poster)}" alt=""><span aria-hidden="true">▶</span></button>`;
   }
   if (item.type === 'video') {
-    return `<video controls${autoplay ? ' autoplay' : ''} preload="metadata" poster="${escapeHtml(item.poster || plugin.cover || '')}"><source src="${escapeHtml(item.src)}"></video>`;
+    return `<video controls preload="none" poster="${escapeHtml(item.poster || plugin.cover || '')}"><source src="${escapeHtml(item.src)}"></video>`;
   }
-  return `<img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt?.[language] || plugin.name)}">`;
+  return `<button class="hero-image-button" type="button" data-open-lightbox data-image-media-index="${index}" aria-label="${escapeHtml(`${ui.mediaOpen}: ${title}`)}"><img src="${escapeHtml(item.src)}" alt="${escapeHtml(title)}"></button>`;
 }
 
 function pluginMedia(plugin, language) {
@@ -215,9 +229,17 @@ function pluginMedia(plugin, language) {
     const id = item.type === 'youtube' ? youtubeId(item.url) : '';
     const preview = id ? `https://i.ytimg.com/vi/${id}/mqdefault.jpg` : (item.poster || item.src || plugin.cover);
     const label = item.type === 'image' ? ui.mediaImage : ui.mediaVideo;
-    return `<button class="media-thumb${index === 0 ? ' active' : ''}" type="button" data-media-index="${index}" data-media-type="${escapeHtml(item.type || 'image')}" data-media-src="${escapeHtml(item.src || item.url || '')}" data-media-poster="${escapeHtml(item.poster || plugin.cover || '')}" data-media-title="${escapeHtml(item.title?.[language] || item.alt?.[language] || plugin.name)}" aria-label="${escapeHtml(`${label} ${index + 1}`)}"><img src="${escapeHtml(preview)}" alt=""><span>${item.type === 'image' ? '▧' : '▶'}</span></button>`;
+    return `<button class="media-thumb${index === 0 ? ' active' : ''}" type="button" data-media-index="${index}" data-media-type="${escapeHtml(item.type || 'image')}" data-media-src="${escapeHtml(item.src || item.url || '')}" data-media-full-src="${escapeHtml(item.fullSrc || item.src || '')}" data-media-poster="${escapeHtml(item.poster || plugin.cover || '')}" data-media-title="${escapeHtml(item.title?.[language] || item.alt?.[language] || plugin.name)}" aria-label="${escapeHtml(`${label} ${index + 1}`)}"><img src="${escapeHtml(preview)}" alt=""><span>${item.type === 'image' ? '▧' : '▶'}</span></button>`;
   }).join('');
-  return `<div id="heroMedia" class="hero-media">${mediaElement(media[0], plugin, language)}</div><div class="media-thumbs">${thumbs}</div>`;
+  return `<div id="heroMedia" class="hero-media">${mediaElement(media[0], plugin, language, 0)}</div><div class="media-thumbs">${thumbs}</div>
+        <dialog class="media-lightbox" data-media-dialog aria-label="${escapeHtml(ui.mediaDialog)}">
+          <div class="media-lightbox-layout">
+            <button class="media-lightbox-close" type="button" data-lightbox-close aria-label="${escapeHtml(ui.mediaClose)}">×</button>
+            <button class="media-lightbox-nav media-lightbox-previous" type="button" data-lightbox-previous aria-label="${escapeHtml(ui.mediaPrevious)}">‹</button>
+            <img data-lightbox-image alt="">
+            <button class="media-lightbox-nav media-lightbox-next" type="button" data-lightbox-next aria-label="${escapeHtml(ui.mediaNext)}">›</button>
+          </div>
+        </dialog>`;
 }
 
 function actionLink(url, label, className = 'secondary-button', external = true) {
