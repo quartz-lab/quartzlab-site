@@ -1,13 +1,33 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, readFile, readdir } from 'node:fs/promises';
+import { access, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
+import { buildSite } from '../scripts/build-site.mjs';
 import { renderAboutPage, renderHomePage, renderPluginPage, siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const OUTPUT = path.join(ROOT, '_site');
+let OUTPUT = path.join(ROOT, '_site');
+let temporaryRoot;
+const robots = await readFile(path.join(OUTPUT, 'robots.txt'), 'utf8').catch(() => '');
+if (/Disallow:\s*\//.test(robots)) {
+  temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'quartzlab-normal-static-tests-'));
+  OUTPUT = path.join(temporaryRoot, '_site');
+  await buildSite({
+    outputPath: OUTPUT,
+    environment: {
+      ...process.env,
+      SITE_ORIGIN: 'https://quartzlab.ru',
+      SITE_BASE_PATH: '/',
+      SITE_MAINTENANCE: 'false',
+    },
+  });
+}
+after(async () => {
+  if (temporaryRoot) await rm(temporaryRoot, { recursive: true, force: true });
+});
 const readOutput = (...segments) => readFile(path.join(OUTPUT, ...segments), 'utf8');
 
 async function listFiles(directory) {
@@ -89,10 +109,11 @@ test('renderer supports project Pages base path while canonical stays on quartzl
   }
 });
 
-test('about page keeps two content sections and the four local-vector social buttons', async () => {
+test('about page keeps two content sections and renders only configured local-vector social buttons', async () => {
   const html = await readOutput('ru', 'about', 'index.html');
   assert.equal((html.match(/class="project-section"/g) || []).length, 2);
-  assert.equal((html.match(/class="project-social-link"/g) || []).length, 4);
+  assert.equal((html.match(/class="project-social-link"/g) || []).length, 3);
+  assert.doesNotMatch(html, /data-social="telegram"|t\.me\//);
   assert.doesNotMatch(html, /<h2>Принципы<\/h2>/);
 });
 

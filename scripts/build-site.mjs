@@ -4,7 +4,7 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 
 import { loadPluginConfig, parseGithubRepositoryUrl, syncPlugins } from './lib/plugin-sync.mjs';
 import { findGeneratedAssetSources, fingerprintAssets } from './lib/site-assets.mjs';
-import { loadSiteConfig } from './lib/site-config.mjs';
+import { loadSiteConfig, resolveMaintenanceEnabled } from './lib/site-config.mjs';
 import { buildOptions } from './lib/site-paths.mjs';
 import {
   renderAboutPage,
@@ -27,17 +27,19 @@ async function writeText(outputPath, relativePath, contents) {
   await writeFile(target, contents, 'utf8');
 }
 
-function editableSources() {
-  return [
+function editableSources(maintenance) {
+  const sources = maintenance ? [
+    ['/maintenance.css', 'styles/maintenance.css'],
+  ] : [
     ['/styles.css', 'styles/styles.css'],
     ['/docs-theme.css', 'styles/docs-theme.css'],
-    ['/maintenance.css', 'styles/maintenance.css'],
     ['/site.js', 'scripts/site.js'],
     ['/catalog-interactions.js', 'scripts/catalog-interactions.js'],
     ['/plugin-gallery.js', 'scripts/plugin-gallery.js'],
     ['/theme.js', 'scripts/theme.js'],
     ['/language-redirect.js', 'scripts/language-redirect.js'],
-  ].map(([logicalPath, source]) => ({
+  ];
+  return sources.map(([logicalPath, source]) => ({
     logicalPath,
     filePath: path.join(SITE_SOURCE, ...source.split('/')),
     removeAfterFingerprint: false,
@@ -85,22 +87,27 @@ export async function buildSite({
   environment = process.env,
   validate = true,
 } = {}) {
-  const renderOptions = buildOptions(environment);
   const siteConfig = await loadSiteConfig();
+  const maintenance = resolveMaintenanceEnabled(siteConfig, environment);
+  const renderOptions = {
+    ...buildOptions(environment, { siteOrigin: siteConfig.brand.origin }),
+    brand: siteConfig.brand,
+    socials: siteConfig.socials,
+  };
   await loadPluginConfig();
 
   await rm(outputPath, { recursive: true, force: true });
   await mkdir(outputPath, { recursive: true });
   await cp(path.join(SITE_SOURCE, 'assets'), path.join(outputPath, 'assets'), { recursive: true });
 
-  const result = siteConfig.maintenance.enabled
+  const result = maintenance
     ? await renderMaintenanceSite(outputPath, renderOptions)
     : await renderNormalSite(outputPath, renderOptions);
 
   const generatedSources = await findGeneratedAssetSources(outputPath);
   const manifest = await fingerprintAssets({
     outputPath,
-    sources: [...editableSources(), ...generatedSources],
+    sources: [...editableSources(maintenance), ...generatedSources],
     basePath: renderOptions.basePath,
   });
 
