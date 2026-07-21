@@ -24,7 +24,7 @@
 - Чистая публикация на GitHub Pages с custom domain.
 
 <p align="center">
-  <img src="site/assets/plugins/clipswitch/screenshot-library.png" width="720" alt="Ассет страницы ClipSwitch, используемый в каталоге QuartzLab">
+  <img src="site/assets/quartzlab-site-preview.png" width="960" alt="Страница плагина ClipSwitch на сайте QuartzLab">
 </p>
 
 ## Быстрый старт

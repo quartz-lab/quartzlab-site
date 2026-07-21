@@ -24,7 +24,7 @@ Static bilingual catalog and documentation site for QuartzLab Unity Editor plugi
 - Clean GitHub Pages deployment for the custom domain.
 
 <p align="center">
-  <img src="site/assets/plugins/clipswitch/screenshot-library.png" width="720" alt="ClipSwitch page asset used by the QuartzLab catalog">
+  <img src="site/assets/quartzlab-site-preview.png" width="960" alt="QuartzLab ClipSwitch plugin page">
 </p>
 
 ## Quick start

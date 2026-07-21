@@ -6,9 +6,10 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { buildSite } from '../scripts/build-site.mjs';
-import { renderAboutPage, renderHomePage, renderPluginPage, siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
+import { escapeHtml, renderAboutPage, renderHomePage, renderPluginPage, siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
+const siteConfig = JSON.parse(await readFile(path.join(ROOT, 'site.config.json'), 'utf8'));
 let OUTPUT = path.join(ROOT, '_site');
 let temporaryRoot;
 const robots = await readFile(path.join(OUTPUT, 'robots.txt'), 'utf8').catch(() => '');
@@ -109,11 +110,43 @@ test('renderer supports project Pages base path while canonical stays on quartzl
   }
 });
 
-test('about page keeps two content sections and renders only configured local-vector social buttons', async () => {
-  const html = await readOutput('ru', 'about', 'index.html');
+test('about page keeps two content sections and renders only configured local-vector social buttons', () => {
+  const html = renderAboutPage('ru', {
+    brand: siteConfig.brand,
+    socials: siteConfig.socials,
+    siteOrigin: siteConfig.brand.origin,
+  });
+  const socialEntries = Object.entries(siteConfig.socials);
+  const configuredSocials = socialEntries.filter(([, url]) => typeof url === 'string' && url.trim());
+  const disabledSocials = socialEntries.filter(([, url]) => typeof url !== 'string' || !url.trim());
+  const socialButtons = [...html.matchAll(/<a class="project-social-link" data-social="([^"]+)" href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
+    .map(([, name, href, contents]) => ({ name, href, contents }));
+  const buttonsByName = new Map(socialButtons.map(button => [button.name, button]));
+
   assert.equal((html.match(/class="project-section"/g) || []).length, 2);
-  assert.equal((html.match(/class="project-social-link"/g) || []).length, 4);
-  assert.doesNotMatch(html, /data-social="telegram"|t\.me\//);
+  assert.equal(socialButtons.length, configuredSocials.length);
+  for (const [name, url] of configuredSocials) {
+    const button = buttonsByName.get(name);
+    assert.ok(button, `configured ${name} social button is missing`);
+    assert.equal(button.href, escapeHtml(url));
+    assert.match(button.contents, /^<svg\b[\s\S]*<\/svg><span>[^<]+<\/span>$/, `${name} must use an inline local SVG icon`);
+    assert.doesNotMatch(button.contents, /<(?:img|use)\b[^>]*(?:src|href)=["']https?:/i, `${name} must not load an external icon`);
+  }
+  for (const [name] of disabledSocials) {
+    assert.equal(buttonsByName.has(name), false, `disabled ${name} social button must not render`);
+  }
+  const nullableSocial = configuredSocials[0];
+  if (nullableSocial) {
+    const [nullableName] = nullableSocial;
+    const htmlWithNullSocial = renderAboutPage('ru', {
+      brand: siteConfig.brand,
+      socials: { ...siteConfig.socials, [nullableName]: null },
+      siteOrigin: siteConfig.brand.origin,
+    });
+    const renderedNames = [...htmlWithNullSocial.matchAll(/data-social="([^"]+)"/g)].map(([, name]) => name);
+    assert.equal(renderedNames.includes(nullableName), false, `null ${nullableName} social button must not render`);
+    assert.equal(renderedNames.length, configuredSocials.length - 1);
+  }
   assert.doesNotMatch(html, /<h2>Принципы<\/h2>/);
 });
 
