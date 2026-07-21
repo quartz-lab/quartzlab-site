@@ -112,7 +112,7 @@ test('renderer supports project Pages base path while canonical stays on quartzl
 test('about page keeps two content sections and renders only configured local-vector social buttons', async () => {
   const html = await readOutput('ru', 'about', 'index.html');
   assert.equal((html.match(/class="project-section"/g) || []).length, 2);
-  assert.equal((html.match(/class="project-social-link"/g) || []).length, 3);
+  assert.equal((html.match(/class="project-social-link"/g) || []).length, 4);
   assert.doesNotMatch(html, /data-social="telegram"|t\.me\//);
   assert.doesNotMatch(html, /<h2>Принципы<\/h2>/);
 });
