@@ -2,26 +2,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   mkdir,
-  readdir,
-  readFile,
   rm,
   writeFile,
 } from 'node:fs/promises';
 import { atomicWriteJson } from './fs-utils.mjs';
 import { readJsonFile } from './json-utils.mjs';
+import { withBasePath } from './site-paths.mjs';
 import {
   renderDocumentationPage,
   renderPluginPage,
-  renderRobotsTxt,
-  renderSitemap,
 } from './site-render.mjs';
-import { fingerprintPublicAssets } from './site-assets.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CONFIG_PATH = path.join(ROOT, 'catalog', 'plugins.config.json');
-const PUBLIC_PATH = path.join(ROOT, 'public');
-const DATA_PATH = path.join(PUBLIC_PATH, 'data');
-const GENERATED_DOCS_PATH = path.join(PUBLIC_PATH, 'generated-docs');
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_API_VERSION = '2026-03-10';
 const USER_AGENT = 'quartzlab-site-sync/1.0';
@@ -377,8 +370,8 @@ function isNotFoundError(error) {
   return String(error.message || '').includes('GitHub API 404');
 }
 
-function generatedDocsBasePath(language) {
-  return path.join(GENERATED_DOCS_PATH, language);
+function generatedDocsBasePath(generatedDocsPath, language) {
+  return path.join(generatedDocsPath, language);
 }
 
 function validateHtmlDocument(filePath, contents) {
@@ -431,35 +424,6 @@ function validateDocumentationTextFile(filePath, contents) {
   if (extension === '.css') {
     validateCssDocument(filePath, contents);
   }
-}
-
-async function cleanupGeneratedSlugDirectories(basePath, activeSlugs) {
-  try {
-    const entries = await readdir(basePath, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-
-      if (!activeSlugs.has(entry.name)) {
-        await rm(path.join(basePath, entry.name), { recursive: true, force: true });
-      }
-    }
-  } catch (error) {
-    if (error?.code !== 'ENOENT') {
-      throw error;
-    }
-  }
-}
-
-async function cleanupGeneratedOutput(activeSlugs) {
-  for (const language of SUPPORTED_LANGUAGES) {
-    await cleanupGeneratedSlugDirectories(generatedDocsBasePath(language), activeSlugs);
-    await rm(path.join(PUBLIC_PATH, language, 'plugins'), { recursive: true, force: true });
-    await rm(path.join(PUBLIC_PATH, language, 'docs'), { recursive: true, force: true });
-  }
-
-  await rm(path.join(PUBLIC_PATH, 'plugin-docs'), { recursive: true, force: true });
 }
 
 async function getRepositoryDirectory(owner, repo, directoryPath, ref, token) {
@@ -567,12 +531,12 @@ async function loadDocumentationFiles(owner, repo, ref, token) {
   return files;
 }
 
-async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles) {
+async function writeDocumentationRoutes(slug, routeLanguage, documentationFiles, generatedDocsPath) {
   if (!documentationFiles.length) {
     return null;
   }
 
-  const targetDirectory = safeResolve(generatedDocsBasePath(routeLanguage), slug);
+  const targetDirectory = safeResolve(generatedDocsBasePath(generatedDocsPath, routeLanguage), slug);
   await rm(targetDirectory, { recursive: true, force: true });
   await mkdir(targetDirectory, { recursive: true });
 
@@ -724,18 +688,39 @@ function validatePluginConfig(config) {
   }
 }
 
-export async function syncPlugins() {
-  const token = process.env.GITHUB_PUBLIC_READ_TOKEN || null;
+function publicPluginRecord(plugin, basePath) {
+  const publicPath = value => typeof value === 'string' && value.startsWith('/')
+    ? withBasePath(value, basePath)
+    : value;
+  return {
+    ...plugin,
+    cover: publicPath(plugin.cover),
+    media: plugin.media.map(item => ({
+      ...item,
+      src: publicPath(item.src),
+      fullSrc: publicPath(item.fullSrc),
+      poster: publicPath(item.poster),
+    })),
+  };
+}
+
+export async function syncPlugins({
+  outputPath = path.join(ROOT, '_site'),
+  siteOrigin,
+  basePath,
+  token = process.env.GITHUB_PUBLIC_READ_TOKEN || null,
+} = {}) {
   const configs = await loadPluginConfig();
+  const dataPath = path.join(outputPath, 'data');
+  const generatedDocsPath = path.join(outputPath, 'generated-docs');
+  const renderOptions = { siteOrigin, basePath };
 
   for (const config of configs) {
     validatePluginConfig(config);
   }
 
-  await mkdir(DATA_PATH, { recursive: true });
-  await mkdir(GENERATED_DOCS_PATH, { recursive: true });
-
-  const activeSlugs = new Set(configs.map(config => parseGithubRepositoryUrl(config.repository).repo.toLowerCase()));
+  await mkdir(dataPath, { recursive: true });
+  await mkdir(generatedDocsPath, { recursive: true });
 
   const plugins = [];
   const downloads = {};
@@ -759,7 +744,7 @@ export async function syncPlugins() {
     const documentationByLanguage = {};
     if (documentationFiles.length) {
       for (const language of SUPPORTED_LANGUAGES) {
-        const written = await writeDocumentationRoutes(repo.toLowerCase(), language, documentationFiles);
+        const written = await writeDocumentationRoutes(repo.toLowerCase(), language, documentationFiles, generatedDocsPath);
         if (written?.indexHtml) {
           documentationByLanguage[language] = written.indexHtml;
           hasDocumentation = true;
@@ -782,8 +767,6 @@ export async function syncPlugins() {
     }
   }
 
-  await cleanupGeneratedOutput(activeSlugs);
-
   plugins.sort((left, right) => {
     if (Number(right.featured) !== Number(left.featured)) {
       return Number(right.featured) - Number(left.featured);
@@ -791,42 +774,34 @@ export async function syncPlugins() {
     return String(right.updatedAt).localeCompare(String(left.updatedAt));
   });
 
-  const generatedAt = new Date().toISOString();
-  const pluginsPath = path.join(DATA_PATH, 'plugins.json');
-  const downloadsPath = path.join(DATA_PATH, 'downloads.json');
-  await atomicWriteJson(pluginsPath, plugins);
-  await atomicWriteJson(downloadsPath, { generatedAt, plugins: downloads });
+  const pluginsPath = path.join(dataPath, 'plugins.json');
+  const downloadsPath = path.join(dataPath, 'downloads.json');
+  await atomicWriteJson(pluginsPath, plugins.map(plugin => publicPluginRecord(plugin, basePath)));
+  await atomicWriteJson(downloadsPath, { plugins: downloads });
 
   for (const plugin of plugins) {
     for (const language of SUPPORTED_LANGUAGES) {
       await writeTextFile(
-        path.join(PUBLIC_PATH, language, 'plugins', plugin.slug, 'index.html'),
-        renderPluginPage(plugin, downloads[plugin.slug], language),
+        path.join(outputPath, language, 'plugins', plugin.slug, 'index.html'),
+        renderPluginPage(plugin, downloads[plugin.slug], language, renderOptions),
       );
 
       const documentationHtml = documentationPages.get(plugin.slug)?.[language];
       if (plugin.documentationAvailable && documentationHtml) {
         await writeTextFile(
-          path.join(PUBLIC_PATH, language, 'docs', plugin.slug, 'index.html'),
-          renderDocumentationPage(plugin, language, documentationHtml),
+          path.join(outputPath, language, 'docs', plugin.slug, 'index.html'),
+          renderDocumentationPage(plugin, language, documentationHtml, renderOptions),
         );
       }
     }
   }
 
-  await writeTextFile(path.join(PUBLIC_PATH, 'sitemap.xml'), renderSitemap(plugins));
-  await writeTextFile(path.join(PUBLIC_PATH, 'robots.txt'), renderRobotsTxt());
-  const assetManifest = await fingerprintPublicAssets(PUBLIC_PATH);
-
   await Promise.all([
     readJsonFile(pluginsPath),
     readJsonFile(downloadsPath),
-    readJsonFile(path.join(PUBLIC_PATH, 'asset-manifest.json')),
   ]);
 
   return {
-    assetManifest,
-    generatedAt,
     downloads,
     plugins,
   };
@@ -834,7 +809,5 @@ export async function syncPlugins() {
 
 export const paths = {
   config: CONFIG_PATH,
-  data: DATA_PATH,
-  generatedDocs: GENERATED_DOCS_PATH,
   root: ROOT,
 };

@@ -1,201 +1,113 @@
 # QuartzLab site
 
-Статический двуязычный сайт для Cloudflare Pages. Статические файлы публикуются из `public/`, серверная часть используется только через Pages Functions.
+Статический двуязычный сайт [QuartzLab](https://quartzlab.ru) с каталогом Unity Editor-плагинов и веб-копиями их документации.
 
 ## Архитектура
 
-- `public/` содержит весь публичный фронтенд.
-- `functions/go/support.js` пишет обезличенное событие в Cloudflare Analytics Engine и затем всегда делает redirect на Boosty.
-- `catalog/plugins.config.json` хранит ручной каталог плагинов: ссылка на репозиторий и локализованный контент.
-- `scripts/sync-plugins.mjs` подтягивает метаданные и документацию только из последнего опубликованного GitHub release каждого плагина.
-- Один синхронизатор создаёт данные каталога, локальную веб-копию документации, страницы плагинов, страницы документации, `sitemap.xml` и `robots.txt`.
-- Канонические страницы — реальные статические файлы:
-  - `public/{lang}/plugins/{slug}/index.html`
-  - `public/{lang}/docs/{slug}/index.html`
-- Внутренние ресурсы синхронизированной документации хранятся в `public/generated-docs/{lang}/{slug}/`, а основной текст документации входит прямо в каноническую HTML-страницу.
-- Устаревшие сгенерированные docs и каталоги slug, которых больше нет в `catalog/plugins.config.json`, удаляются автоматически.
+- `catalog/plugins.config.json` — ручные метаданные каталога и RU/EN-тексты.
+- `site/` — редактируемые CSS, JavaScript, SVG и изображения.
+- `scripts/build-site.mjs` — единственная production-сборка.
+- `_site/` — временный готовый deployment artifact; он всегда пересоздаётся и не коммитится.
 
-## Что делает синхронизатор
+Сборщик получает публичные GitHub Releases, сверяет release tag с версией `package.json`, суммирует загрузки ZIP-архивов, загружает `Documentation~`, очищает веб-копию от offline-only интерфейса и генерирует каталог, страницы плагинов, документацию, SEO, `robots.txt`, `sitemap.xml` и `404.html`. Исходная `Documentation~` в репозитории плагина не изменяется.
 
-Для каждого репозитория из `catalog/plugins.config.json` скрипт:
+Каталоги `/ru/` и `/en/` полностью статические: карточки уже находятся в HTML. JavaScript отвечает только за тему, язык, фильтры, сортировку и галерею; загрузки `plugins.json` или `downloads.json` в браузере нет.
 
-1. Проверяет, что репозиторий публичный и находится на GitHub.
-2. Загружает все опубликованные releases с пагинацией, исключая `draft` и `prerelease`.
-3. Берет последний опубликованный release как источник `package.json`, `LICENSE*` и `Documentation~`.
-4. Проверяет, что `package.json.version` совпадает с `release.tag_name` с учетом опционального префикса `v`.
-5. Суммирует `download_count` только по ZIP-assets всех опубликованных releases.
-6. Копирует `Documentation~` на сайт, включая HTML, CSS, JS и изображения, в `public/generated-docs/{lang}/{slug}/`, не меняя оригиналы в репозитории плагина.
-7. Для веб-копии оставляет только язык маршрута, убирает внутренний выбор языка и офлайн-пояснения, а inline `<style>` и `<script>` извлекает в локальные файлы для строгого CSP без `unsafe-inline`.
-8. Обновляет `public/data/plugins.json` и `public/data/downloads.json`.
-9. Генерирует локализованные страницы плагинов и документации с `title`, `description`, canonical и hreflang, затем обновляет `sitemap.xml` и `robots.txt`.
-10. Создаёт content-hashed копии всех публичных CSS/JS, обновляет ссылки во всех HTML и удаляет fingerprinted-assets предыдущей сборки.
+CSS и JavaScript получают SHA-256 fingerprint в имени. Хэш вычисляется из нормализованных байтов, записанный файл перечитывается и проверяется, затем обновляются HTML и атомарный `asset-manifest.json`. Предыдущие `_site`, manifest и hashed-assets никогда не используются как источник новой сборки.
 
-Канонический origin сайта — `https://quartzlab.ru`. Генератор использует его для sitemap, robots.txt, canonical, hreflang, Open Graph и остальных абсолютных публичных URL.
+## Локальная работа
 
-HTML, JSON и другие изменяемые ответы отдаются с `Cache-Control: no-cache`. Только файлы из `public/hashed-assets/`, имена которых включают SHA-256 содержимого, получают годовой `immutable` cache policy.
-
-Если release невалиден, версия не совпадает или документация содержит запрещенные удаленные ресурсы, синхронизация завершается ошибкой.
-
-## Приватная аналитика
-
-Маршрут `/go/support` принимает только:
-
-- `place`
-- `lang`
-- `page`
-
-В Analytics Engine записываются только:
-
-- `index1`: тип события, всегда `support_click`
-- `blob1`: место кнопки
-- `blob2`: язык
-- `blob3`: pathname
-- `double1`: всегда `1`
-- `timestamp`: автоматически выставляется Analytics Engine
-
-Не сохраняются cookies, IP, User-Agent, query string, полный Referer и другие персональные данные. При любой ошибке аналитики redirect на `https://boosty.to/quartzlab` все равно выполняется.
-
-## Cloudflare Pages
-
-Настройки проекта:
-
-- Build command: `node scripts/validate-site.mjs`
-- Build output directory: `public`
-- Wrangler config: `wrangler.jsonc`
-- Pages Functions: включены
-
-Обязательный binding:
-
-- Analytics Engine binding `SUPPORT_ANALYTICS` с dataset `support_clicks`
-
-Локальный запуск:
+Требуется Node.js 22. Сторонние npm-зависимости не нужны.
 
 ```powershell
-node scripts/sync-plugins.mjs
-node scripts/validate-site.mjs
+node scripts/build-site.mjs
+node scripts/validate-site.mjs _site
 node --test
-npx.cmd wrangler@latest pages dev public
+node scripts/serve.mjs
 ```
 
-Примечание: локально Analytics Engine binding недоступен в `pages dev`, поэтому запись событий не выполняется, но redirect через `/go/support` продолжает работать.
+Preview по умолчанию доступен на `http://127.0.0.1:4173/`. Сервер поддерживает красивые маршруты, включая `/ru/`, `/en/`, страницы плагинов и документации. Не открывайте HTML через `file://`: маршруты и CSP рассчитаны на HTTP.
 
-`scripts/validate-site.mjs` является обязательной проверкой перед deployment. Он проверяет исходный конфиг каталога, все генерируемые JSON, конфликтные маркеры, manifest и его файлы, CSS/JS-ссылки, локализованные страницы, sitemap, robots и канонический домен. Любая проблема завершает build с кодом `1`, поэтому Cloudflare Pages сохраняет предыдущую рабочую публикацию.
+Для проверки стандартного project Pages URL:
+
+```powershell
+$env:SITE_BASE_PATH = '/quartzlab-site'
+node scripts/build-site.mjs
+node scripts/validate-site.mjs _site
+node scripts/serve.mjs
+```
+
+Откройте `http://127.0.0.1:4173/quartzlab-site/`. Вернуть production-настройку можно, удалив переменную и пересобрав:
+
+```powershell
+Remove-Item Env:SITE_BASE_PATH
+node scripts/build-site.mjs
+```
+
+Переменные сборки:
+
+- `SITE_ORIGIN` — canonical origin, по умолчанию `https://quartzlab.ru`;
+- `SITE_BASE_PATH` — путь deployment, по умолчанию `/`;
+- `GITHUB_PUBLIC_READ_TOKEN` — необязательный токен только для чтения публичного GitHub API. Без него используется публичный API без авторизации.
+
+Canonical, hreflang, Open Graph, JSON-LD, sitemap и robots всегда используют `SITE_ORIGIN`, а локальные assets и внутренние маршруты учитывают `SITE_BASE_PATH`.
 
 ## Режим технических работ
 
-Единственный исходный переключатель находится в `site.config.json`. Команда изменяет его, атомарно пересобирает `functions/generated/site-config.js` и проверяет согласованность конфигурации:
-
 ```powershell
 node scripts/maintenance.mjs on
-node scripts/maintenance.mjs off
 node scripts/maintenance.mjs status
-```
-
-При включённом режиме корневой Pages Functions middleware возвращает полноэкранную RU/EN-страницу со статусом `503 Service Unavailable`, заголовками `Retry-After`, `Cache-Control: no-store` и `X-Robots-Tag: noindex, nofollow`. Страница не зависит от каталога и `plugins.json`. Ресурсы `/assets/*`, `/hashed-assets/*`, `/go/support` и `/cdn-cgi/*` остаются доступными.
-
-Включить и опубликовать:
-
-```powershell
-node scripts/maintenance.mjs on
-git add -A
-git commit -m "chore: enable maintenance mode"
-git push origin main
-```
-
-Выключить и опубликовать:
-
-```powershell
+node scripts/build-site.mjs
 node scripts/maintenance.mjs off
-git add -A
-git commit -m "chore: disable maintenance mode"
-git push origin main
 ```
 
-Переключение вступает в силу только после успешного Cloudflare Pages deployment соответствующего commit.
+При включённом режиме сборка не обращается к GitHub Releases. Она создаёт локализованные maintenance-страницы для корня, `404`, каталога, about и известных plugin/docs-маршрутов, добавляет `noindex,nofollow`, закрывает обход в `robots.txt` и оставляет sitemap пустым. Страница работает без JavaScript и выбирает светлую/тёмную тему через `prefers-color-scheme`.
 
-## GitHub Actions
+GitHub Pages возвращает для статической maintenance-страницы HTTP 200, поэтому этот режим является визуальным временным закрытием сайта, а не полноценным серверным maintenance response и не HTTP 503.
 
-Workflow `.github/workflows/sync-plugin-releases.yml` запускается:
+## GitHub Pages deployment
 
-- по cron
-- вручную
-- при изменениях в `catalog/plugins.config.json`, `scripts/**` и самом workflow
+Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) запускается при push в `main`, pull request, вручную и ежедневно по cron. Он использует только официальные `actions/*`, собирает чистый `_site`, валидирует его, запускает тесты, загружает Pages artifact и публикует именно этот artifact. Pull request выполняет проверку, но не production deploy.
 
-Он:
+Ежедневная синхронизация не изменяет репозиторий: bot-коммитов, `git add`, `git commit` и `git push` в workflow нет. При необходимости создайте Actions secret `GITHUB_PUBLIC_READ_TOKEN`; для одного публичного плагина он обычно не нужен.
 
-1. Запускает `node scripts/sync-plugins.mjs`
-2. Запускает `node scripts/validate-site.mjs`
-3. Запускает `node --test`
-4. Коммитит сгенерированные изменения в `public/`, включая данные, документацию, статические страницы и SEO-файлы.
+Ручной запуск: **Actions → Build and deploy GitHub Pages → Run workflow → main → Run workflow**. Затем откройте выполненный run и убедитесь, что jobs `build` и `deploy` зелёные, а environment `github-pages` указывает на production URL.
 
-Опциональный secret:
+## Настройка GitHub Settings → Pages
 
-- `GITHUB_PUBLIC_READ_TOKEN`
+1. Откройте репозиторий `quartz-lab/quartzlab-site` → **Settings** → **Pages**.
+2. В **Build and deployment → Source** выберите **GitHub Actions**.
+3. После первого успешного workflow в **Custom domain** укажите `quartzlab.ru` и сохраните.
+4. Дождитесь успешной DNS check и выпуска сертификата.
+5. Включите **Enforce HTTPS**, когда переключатель станет доступен.
+6. Проверьте `https://quartzlab.ru/`, RU/EN-маршруты и environment последнего deployment.
 
-Назначение секрета:
+При custom GitHub Actions workflow файл `CNAME` в исходной ветке не требуется: custom domain хранится в Pages settings.
 
-- повышает лимит GitHub API
-- должен быть fine-grained и read-only
-- должен иметь доступ только к явно разрешенным публичным репозиториям
+## DNS для quartzlab.ru
 
-Сайт и синхронизация продолжают работать без этого секрета для публичных репозиториев, но могут упереться в rate limit GitHub API.
+Сначала добавьте custom domain в Pages settings, затем изменяйте DNS. Для apex `quartzlab.ru` создайте четыре записи:
 
-## Готовые SQL-запросы для Analytics Engine
+| Type | Name | Value |
+|---|---|---|
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
 
-Топ кликов по месту кнопки:
+Для `www` создайте `CNAME`: имя `www`, значение `quartz-lab.github.io` без имени репозитория. GitHub Pages автоматически перенаправит `www` на настроенный apex-домен.
 
-```sql
-SELECT
-  blob1 AS place,
-  SUM(double1 * _sample_interval) AS clicks
-FROM support_clicks
-WHERE index1 = 'support_click'
-GROUP BY place
-ORDER BY clicks DESC;
+Если DNS-зона остаётся у Cloudflare, все перечисленные записи должны быть **DNS only** (серое облако). Удалите старый `CNAME`, ведущий на `quartzlab-site.pages.dev`, а также прежний Bulk Redirect для `www`: перенаправление теперь выполняет GitHub Pages. Не создавайте wildcard-записи. Распространение DNS и выпуск HTTPS-сертификата могут занять время.
+
+Проверка в PowerShell:
+
+```powershell
+Resolve-DnsName quartzlab.ru -Type A
+Resolve-DnsName www.quartzlab.ru -Type CNAME
 ```
 
-Клики по страницам и языкам:
+## Ограничения GitHub Pages
 
-```sql
-SELECT
-  blob3 AS pathname,
-  blob2 AS language,
-  SUM(double1 * _sample_interval) AS clicks
-FROM support_clicks
-WHERE index1 = 'support_click'
-GROUP BY pathname, language
-ORDER BY clicks DESC;
-```
+GitHub Pages не применяет `_headers` и не позволяет этому репозиторию задавать произвольный `Cache-Control`. Поэтому изменяемые CSS/JS используют content fingerprinting, а HTML содержит безопасные meta-эквиваленты для CSP, referrer и robots. В meta CSP нет неподдерживаемого `frame-ancestors`; разрешены локальные assets и lazy iframe `youtube-nocookie.com`.
 
-Дневная динамика:
-
-```sql
-SELECT
-  toStartOfDay(timestamp) AS day,
-  SUM(double1 * _sample_interval) AS clicks
-FROM support_clicks
-WHERE index1 = 'support_click'
-GROUP BY day
-ORDER BY day ASC;
-```
-
-Клики по конкретной кнопке:
-
-```sql
-SELECT
-  blob3 AS pathname,
-  SUM(double1 * _sample_interval) AS clicks
-FROM support_clicks
-WHERE index1 = 'support_click'
-  AND blob1 = 'plugin-side-note'
-GROUP BY pathname
-ORDER BY clicks DESC;
-```
-
-## Безопасность
-
-- Секреты и токены не должны попадать в `public/`, клиентский код, репозиторий и логи.
-- Для синхронизации используется только `GITHUB_PUBLIC_READ_TOKEN`, если он явно задан.
-- Документация с удаленными скриптами, удаленными стилями, `meta refresh`, `base` и `javascript:` URL отклоняется.
-- CSP задается один раз в `public/_headers`, без конфликтующих повторов.
-- Страницы `/en|ru/plugins/{slug}/` и `/en|ru/docs/{slug}/` обслуживаются напрямую как статические файлы; общих динамических shell-страниц для них нет.
+После миграции удалены Pages Functions, Wrangler, Analytics Engine и серверная аналитика переходов поддержки. Все Boosty-кнопки являются обычными прямыми ссылками на `https://boosty.to/quartzlab` и работают без JavaScript.

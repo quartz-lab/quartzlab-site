@@ -1,82 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { fingerprintPublicAssets } from '../scripts/lib/site-assets.mjs';
+import { fingerprintAssets } from '../scripts/lib/site-assets.mjs';
 
-test('fingerprint pipeline creates a missing manifest, updates HTML, and removes stale assets', async () => {
-  const publicPath = await mkdtemp(path.join(os.tmpdir(), 'quartzlab-assets-'));
+const hash12 = bytes => createHash('sha256').update(bytes).digest('hex').slice(0, 12);
 
+async function temporaryFixture(prefix) {
+  const root = await mkdtemp(path.join(os.tmpdir(), prefix));
+  const source = path.join(root, 'source');
+  const output = path.join(root, 'output');
+  await mkdir(source); await mkdir(output);
+  return { root, source, output };
+}
+
+test('clean fingerprint ignores a wrong old manifest and stale incorrectly named asset', async () => {
+  const fixture = await temporaryFixture('quartzlab-stale-assets-');
   try {
-    await mkdir(path.join(publicPath, 'images'), { recursive: true });
-    await writeFile(path.join(publicPath, 'styles.css'), 'body { background: url("./images/grid.svg"); color: black; }\n');
-    await writeFile(path.join(publicPath, 'app.js'), 'document.documentElement.dataset.build = "one";\n');
-    await writeFile(path.join(publicPath, 'images', 'grid.svg'), '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n');
-    await writeFile(
-      path.join(publicPath, 'index.html'),
-      '<!doctype html><link rel="stylesheet" href="/styles.css"><script src="/app.js"></script>\n',
-    );
+    const sourceFile = path.join(fixture.source, 'catalog.js');
+    const sourceBytes = Buffer.from("document.documentElement.dataset.catalog = 'current';\n");
+    await writeFile(sourceFile, sourceBytes);
+    await mkdir(path.join(fixture.output, 'hashed-assets'));
+    await writeFile(path.join(fixture.output, 'hashed-assets', 'catalog.2e3f44e91a65.js'), sourceBytes);
+    await writeFile(path.join(fixture.output, 'asset-manifest.json'), '{"assets":{"/catalog.js":"/hashed-assets/catalog.2e3f44e91a65.js"}}\n');
+    await writeFile(path.join(fixture.output, 'index.html'), '<script src="/catalog.js"></script>\n');
 
-    const first = await fingerprintPublicAssets(publicPath);
-    const firstManifestJson = await readFile(path.join(publicPath, 'asset-manifest.json'), 'utf8');
-    assert.doesNotThrow(() => JSON.parse(firstManifestJson));
-    const firstStylePath = first.assets['/styles.css'];
-    const firstHtml = await readFile(path.join(publicPath, 'index.html'), 'utf8');
-    const firstStyle = await readFile(path.join(publicPath, ...firstStylePath.slice(1).split('/')), 'utf8');
-    assert.match(firstHtml, new RegExp(firstStylePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.match(firstStyle, /url\("\/images\/grid\.svg"\)/);
+    const manifest = await fingerprintAssets({ outputPath: fixture.output, sources: [{ logicalPath: '/catalog.js', filePath: sourceFile }] });
+    const expected = `/hashed-assets/catalog.${hash12(sourceBytes)}.js`;
+    assert.equal(manifest.assets['/catalog.js'], expected);
+    assert.match(await readFile(path.join(fixture.output, 'index.html'), 'utf8'), new RegExp(expected.replaceAll('.', '\\.')));
+    assert.deepEqual(await readdir(path.join(fixture.output, 'hashed-assets')), [path.basename(expected)]);
+    await assert.rejects(access(path.join(fixture.output, 'hashed-assets', 'catalog.2e3f44e91a65.js')));
+  } finally { await rm(fixture.root, { recursive: true, force: true }); }
+});
 
-    await writeFile(path.join(publicPath, 'styles.css'), 'body { background: url("./images/grid.svg"); color: white; }\n');
-    const second = await fingerprintPublicAssets(publicPath);
-    const secondStylePath = second.assets['/styles.css'];
-    const secondHtml = await readFile(path.join(publicPath, 'index.html'), 'utf8');
-
-    assert.notEqual(secondStylePath, firstStylePath);
-    assert.match(secondHtml, new RegExp(secondStylePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.doesNotMatch(secondHtml, new RegExp(firstStylePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    await assert.rejects(access(path.join(publicPath, ...firstStylePath.slice(1).split('/'))));
-    await access(path.join(publicPath, ...secondStylePath.slice(1).split('/')));
-
-    const third = await fingerprintPublicAssets(publicPath);
-    const thirdHtml = await readFile(path.join(publicPath, 'index.html'), 'utf8');
-    assert.equal(third.assets['/styles.css'], secondStylePath, 'repeated generation keeps stable asset links');
-    assert.equal((thirdHtml.match(/\/hashed-assets\/styles\./g) || []).length, 1);
-    assert.doesNotMatch(thirdHtml, /\/hashed-assets\/hashed-assets\//);
-    assert.equal((await readdir(publicPath)).filter(name => name.includes('.tmp')).length, 0);
+test('fingerprints normalize Windows and Linux line endings and verify written bytes', async () => {
+  const left = await temporaryFixture('quartzlab-lf-');
+  const right = await temporaryFixture('quartzlab-crlf-');
+  try {
+    const leftFile = path.join(left.source, 'app.js');
+    const rightFile = path.join(right.source, 'app.js');
+    await writeFile(leftFile, 'const one = 1;\nconst two = 2;\n');
+    await writeFile(rightFile, 'const one = 1;\r\nconst two = 2;\r\n');
+    await writeFile(path.join(left.output, 'index.html'), '<script src="/app.js"></script>');
+    await writeFile(path.join(right.output, 'index.html'), '<script src="/app.js"></script>');
+    const a = await fingerprintAssets({ outputPath: left.output, sources: [{ logicalPath: '/app.js', filePath: leftFile }] });
+    const b = await fingerprintAssets({ outputPath: right.output, sources: [{ logicalPath: '/app.js', filePath: rightFile }] });
+    assert.equal(a.assets['/app.js'], b.assets['/app.js']);
+    const bytes = await readFile(path.join(left.output, ...a.assets['/app.js'].slice(1).split('/')));
+    assert.match(path.basename(a.assets['/app.js']), new RegExp(`\\.${hash12(bytes)}\\.js$`));
   } finally {
-    await rm(publicPath, { recursive: true, force: true });
+    await rm(left.root, { recursive: true, force: true });
+    await rm(right.root, { recursive: true, force: true });
   }
 });
 
-test('fingerprint pipeline warns and rebuilds a corrupted manifest instead of failing', async () => {
-  const publicPath = await mkdtemp(path.join(os.tmpdir(), 'quartzlab-assets-corrupt-'));
-  const warnings = [];
-  const originalWarn = console.warn;
-
+test('fingerprinted HTML and CSS honor a GitHub Pages project base path', async () => {
+  const fixture = await temporaryFixture('quartzlab-base-path-');
   try {
-    await writeFile(path.join(publicPath, 'styles.css'), 'body { color: black; }\n');
-    await mkdir(path.join(publicPath, 'hashed-assets'), { recursive: true });
-    await writeFile(path.join(publicPath, 'hashed-assets', 'stale.aaaaaaaaaaaa.js'), 'stale\n');
-    await writeFile(
-      path.join(publicPath, 'index.html'),
-      '<!doctype html><link rel="stylesheet" href="/hashed-assets/styles.111111111111.css">\n',
-    );
-    await writeFile(path.join(publicPath, 'asset-manifest.json'), '{\n<<<<<<< HEAD\n}\n');
-    console.warn = message => warnings.push(String(message));
-
-    const manifest = await fingerprintPublicAssets(publicPath);
-    const html = await readFile(path.join(publicPath, 'index.html'), 'utf8');
-    const rebuiltManifestJson = await readFile(path.join(publicPath, 'asset-manifest.json'), 'utf8');
-
-    assert.match(warnings.join('\n'), /Ignoring invalid generated cache/);
-    assert.doesNotThrow(() => JSON.parse(rebuiltManifestJson));
-    assert.match(html, new RegExp(manifest.assets['/styles.css'].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    await assert.rejects(access(path.join(publicPath, 'hashed-assets', 'stale.aaaaaaaaaaaa.js')));
-    assert.doesNotMatch(html, /<<<<<<<|=======|>>>>>>>/);
-  } finally {
-    console.warn = originalWarn;
-    await rm(publicPath, { recursive: true, force: true });
-  }
+    const cssFile = path.join(fixture.source, 'styles.css');
+    await writeFile(cssFile, 'body { background: url("/assets/grid.svg"); }\n');
+    await writeFile(path.join(fixture.output, 'index.html'), '<link rel="stylesheet" href="/quartzlab-site/styles.css">');
+    const manifest = await fingerprintAssets({ outputPath: fixture.output, basePath: '/quartzlab-site', sources: [{ logicalPath: '/styles.css', filePath: cssFile }] });
+    assert.match(manifest.assets['/styles.css'], /^\/quartzlab-site\/hashed-assets\//);
+    const target = manifest.assets['/styles.css'].slice('/quartzlab-site'.length);
+    assert.match(await readFile(path.join(fixture.output, ...target.slice(1).split('/')), 'utf8'), /url\("\/quartzlab-site\/assets\/grid\.svg"\)/);
+  } finally { await rm(fixture.root, { recursive: true, force: true }); }
 });

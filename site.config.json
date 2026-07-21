@@ -1,6 +1,5 @@
 {
   "maintenance": {
-    "enabled": false,
-    "retryAfterSeconds": 3600
+    "enabled": false
   }
 }

@@ -1,7 +1,5 @@
 import {
   loadSiteConfig,
-  verifyGeneratedSiteConfig,
-  writeGeneratedSiteConfig,
   writeSiteConfig,
 } from './lib/site-config.mjs';
 
@@ -14,17 +12,11 @@ if (!['on', 'off', 'status'].includes(command)) {
     let config = await loadSiteConfig();
     if (command !== 'status') {
       config = await writeSiteConfig({
-        ...config,
-        maintenance: {
-          ...config.maintenance,
-          enabled: command === 'on',
-        },
+        maintenance: { enabled: command === 'on' },
       });
-      await writeGeneratedSiteConfig(config);
     }
 
-    await verifyGeneratedSiteConfig(config);
-    console.log(`Maintenance mode: ${config.maintenance.enabled ? 'ON' : 'OFF'} (Retry-After: ${config.maintenance.retryAfterSeconds}s)`);
+    console.log(`Maintenance mode: ${config.maintenance.enabled ? 'ON' : 'OFF'}`);
   } catch (error) {
     console.error(error.stack || error.message || error);
     process.exitCode = 1;

@@ -1,75 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  handleMaintenanceRequest,
-  isMaintenanceAssetPath,
-} from '../functions/_middleware.js';
+import { validateSiteConfig } from '../scripts/lib/site-config.mjs';
+import { renderMaintenancePage } from '../scripts/lib/site-render.mjs';
 
-const enabled = { maintenance: { enabled: true, retryAfterSeconds: 3600 } };
-const disabled = { maintenance: { enabled: false, retryAfterSeconds: 3600 } };
-
-function context(pathname, { language = '', method = 'GET' } = {}) {
-  let nextCalls = 0;
-  return {
-    value: {
-      request: new Request(`https://quartzlab.example${pathname}`, {
-        method,
-        headers: language ? { 'Accept-Language': language } : {},
-      }),
-      async next() {
-        nextCalls += 1;
-        return new Response('next', { status: 200 });
-      },
-    },
-    nextCalls: () => nextCalls,
-  };
-}
-
-test('disabled maintenance passes requests through unchanged', async () => {
-  const testContext = context('/ru/');
-  const response = await handleMaintenanceRequest(testContext.value, disabled);
-  assert.equal(response.status, 200);
-  assert.equal(testContext.nextCalls(), 1);
+test('maintenance configuration is a static boolean without Retry-After settings', () => {
+  assert.deepEqual(validateSiteConfig({ maintenance: { enabled: true } }), { maintenance: { enabled: true } });
+  assert.throws(() => validateSiteConfig({ maintenance: { enabled: true, retryAfterSeconds: 3600 } }), /not supported/i);
 });
 
-test('enabled maintenance returns localized 503 responses with deployment-safe headers', async () => {
-  for (const [pathname, text] of [
-    ['/ru/plugins/clipswitch/', 'Ведутся технические работы'],
-    ['/en/plugins/clipswitch/', 'Maintenance in progress'],
-  ]) {
-    const testContext = context(pathname);
-    const response = await handleMaintenanceRequest(testContext.value, enabled);
-    assert.equal(response.status, 503);
-    assert.equal(response.headers.get('retry-after'), '3600');
-    assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
-    assert.equal(response.headers.get('location'), null, 'maintenance does not redirect');
-    assert.match(await response.text(), new RegExp(text));
-    assert.equal(testContext.nextCalls(), 0);
+test('maintenance page is localized, index-safe, script-free, and supports a Pages base path', () => {
+  const ru = renderMaintenancePage('ru', { basePath: '/quartzlab-site', siteOrigin: 'https://quartzlab.ru' });
+  const en = renderMaintenancePage('en');
+  assert.match(ru, /Проводим технические работы/);
+  assert.match(en, /We are performing maintenance/);
+  for (const html of [ru, en]) {
+    assert.match(html, /noindex,nofollow/);
+    assert.doesNotMatch(html, /<script\b/i);
+    assert.doesNotMatch(html, /503|Retry-After/i);
+    assert.match(html, /maintenance\.css/);
   }
-});
-
-test('Accept-Language chooses Russian outside explicit locale routes', async () => {
-  const testContext = context('/', { language: 'ru-RU,ru;q=0.9,en;q=0.8' });
-  const response = await handleMaintenanceRequest(testContext.value, enabled);
-  assert.match(await response.text(), /QuartzLab временно недоступен/);
-});
-
-test('maintenance assets, support route, and Cloudflare internals remain available', async () => {
-  for (const pathname of ['/assets/quartzlab-mark.svg', '/hashed-assets/site.abc.js', '/go/support', '/cdn-cgi/trace']) {
-    assert.equal(isMaintenanceAssetPath(pathname), true);
-    const testContext = context(pathname);
-    const response = await handleMaintenanceRequest(testContext.value, enabled);
-    assert.equal(response.status, 200);
-    assert.equal(testContext.nextCalls(), 1);
-  }
-});
-
-test('HEAD maintenance response has no body and cannot form a redirect loop', async () => {
-  const testContext = context('/en/', { method: 'HEAD' });
-  const response = await handleMaintenanceRequest(testContext.value, enabled);
-  assert.equal(response.status, 503);
-  assert.equal(await response.text(), '');
-  assert.equal(response.headers.get('location'), null);
+  assert.match(ru, /href="\/quartzlab-site\/ru\/"/);
+  assert.match(ru, /href="\/quartzlab-site\/en\/"/);
 });

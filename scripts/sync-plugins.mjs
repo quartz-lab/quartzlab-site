@@ -1,4 +1,4 @@
-import { syncPlugins } from './lib/plugin-sync.mjs';
+import { buildSite } from './build-site.mjs';
 
-const result = await syncPlugins();
-console.log(`Synced ${result.plugins.length} plugin(s) from latest published GitHub releases.`);
+const result = await buildSite();
+console.log(`Built the site with ${result.plugins.length} plugin(s) from published GitHub releases.`);

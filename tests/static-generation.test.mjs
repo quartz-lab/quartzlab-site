@@ -1,17 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, readdir, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
+import { renderAboutPage, renderHomePage, renderPluginPage, siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const PUBLIC = path.join(ROOT, 'public');
-
-async function readPublic(...segments) {
-  return readFile(path.join(PUBLIC, ...segments), 'utf8');
-}
+const OUTPUT = path.join(ROOT, '_site');
+const readOutput = (...segments) => readFile(path.join(OUTPUT, ...segments), 'utf8');
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -24,218 +21,86 @@ async function listFiles(directory) {
   return files;
 }
 
-async function readAssetManifest() {
-  return JSON.parse(await readPublic('asset-manifest.json'));
-}
-
-test('sync output contains canonical static plugin pages with content and SEO', async () => {
+test('normal clean build contains static RU/EN catalog, plugin, docs, 404, and SEO routes', async () => {
   for (const language of ['en', 'ru']) {
-    const html = await readPublic(language, 'plugins', 'clipswitch', 'index.html');
-    assert.match(html, /<h1>ClipSwitch<\/h1>/);
-    assert.match(html, /<meta name="description" content="[^"]+">/);
-    assert.match(html, new RegExp(`<link rel="canonical" href="https://quartzlab\\.ru/${language}/plugins/clipswitch/">`));
-    assert.match(html, /hreflang="en"/);
-    assert.match(html, /hreflang="ru"/);
-    assert.match(html, /Скачиваний на GitHub|GitHub downloads/);
-    assert.doesNotMatch(html, /plugin\.html\?|fetch\(['"]\/data\/plugins\.json/);
+    const home = await readOutput(language, 'index.html');
+    const plugin = await readOutput(language, 'plugins', 'clipswitch', 'index.html');
+    const docs = await readOutput(language, 'docs', 'clipswitch', 'index.html');
+    assert.match(home, /data-plugin-card/);
+    assert.doesNotMatch(home, /Loading catalog|Загрузка каталога|<template id="productTemplate"/);
+    assert.match(plugin, /<h1>ClipSwitch<\/h1>/);
+    assert.match(plugin, new RegExp(`canonical" href="https://quartzlab\\.ru/${language}/plugins/clipswitch/`));
+    assert.match(docs, /class="site-header"/);
+    assert.doesNotMatch(docs, /class="topbar"|offline documentation|офлайн-документация/i);
   }
-});
-
-test('all public SEO URLs use the canonical quartzlab.ru origin', async () => {
+  await access(path.join(OUTPUT, '404.html'));
   assert.equal(siteOrigin, 'https://quartzlab.ru');
-
-  const pages = [
-    ['en', 'index.html'],
-    ['ru', 'index.html'],
-    ['en', 'about', 'index.html'],
-    ['ru', 'about', 'index.html'],
-    ['en', 'plugins', 'clipswitch', 'index.html'],
-    ['ru', 'plugins', 'clipswitch', 'index.html'],
-    ['en', 'docs', 'clipswitch', 'index.html'],
-    ['ru', 'docs', 'clipswitch', 'index.html'],
-  ];
-
-  for (const page of pages) {
-    const html = await readPublic(...page);
-    assert.match(html, /<link rel="canonical" href="https:\/\/quartzlab\.ru\//);
-    assert.doesNotMatch(html, /quartzlab-site\.pages\.dev/);
-  }
-
-  const sitemap = await readPublic('sitemap.xml');
-  const robots = await readPublic('robots.txt');
-  assert.match(sitemap, /<loc>https:\/\/quartzlab\.ru\//);
-  assert.doesNotMatch(sitemap, /quartzlab-site\.pages\.dev/);
-  assert.match(robots, /Sitemap: https:\/\/quartzlab\.ru\/sitemap\.xml/);
+  assert.doesNotMatch(await readOutput('sitemap.xml'), /quartzlab-site\.pages\.dev|plugin\.html/);
 });
 
-test('sync output contains direct, cleaned documentation HTML for each language', async () => {
-  const en = await readPublic('en', 'docs', 'clipswitch', 'index.html');
-  const ru = await readPublic('ru', 'docs', 'clipswitch', 'index.html');
+test('output catalog scripts never fetch JSON and Boosty links are direct', async () => {
+  const files = await listFiles(OUTPUT);
+  for (const file of files.filter(file => ['.html', '.js'].includes(path.extname(file)))) {
+    const text = await readFile(file, 'utf8');
+    assert.doesNotMatch(text, /fetch\s*\([^)]*(?:plugins|downloads)\.json/i);
+    assert.doesNotMatch(text, /\/go\/support|buildSupportUrl|decorateSupportLinks/);
+  }
+  const home = await readOutput('en', 'index.html');
+  assert.match(home, /href="https:\/\/boosty\.to\/quartzlab" target="_blank" rel="noopener noreferrer"/);
+});
 
-  assert.match(en, /<h1>Clip<span>Switch<\/span><\/h1>/);
-  assert.match(en, /id="en-quick-start"/);
-  assert.doesNotMatch(en, /id="ru-quick-start"/);
-  assert.match(ru, /id="ru-quick-start"/);
-  assert.doesNotMatch(ru, /id="en-quick-start"/);
-
-  for (const html of [en, ru]) {
-    assert.doesNotMatch(html, /<iframe\b/i);
-    assert.doesNotMatch(html, /offline documentation|offline html|офлайн-документация/i);
-    const languageSwitches = html.match(/<div class="language-switch"[^>]*>[\s\S]*?<\/div>/gi) || [];
-    assert.equal(languageSwitches.length, 1, 'only the global site language switch remains');
-    assert.doesNotMatch(languageSwitches[0], /<button/i);
-    assert.match(html, /data-theme-toggle/);
-    assert.match(html, /<link rel="canonical"/);
-    assert.doesNotMatch(html, /class="topbar"/);
-    assert.equal((html.match(/class="site-header"/g) || []).length, 1);
-    assert.match(html, /<span>Quartz<span>Lab<\/span><\/span>/);
+test('all fingerprinted filenames match their exact bytes and no stale files remain', async () => {
+  const manifest = JSON.parse(await readOutput('asset-manifest.json'));
+  const files = (await listFiles(path.join(OUTPUT, 'hashed-assets'))).sort();
+  const prefix = manifest.basePath === '/' ? '' : manifest.basePath;
+  const targets = Object.values(manifest.assets).map(value => value.slice(prefix.length).replace(/^\//, '')).sort();
+  assert.deepEqual(files.map(file => path.relative(OUTPUT, file).replaceAll(path.sep, '/')), targets);
+  for (const file of files) {
+    const digest = createHash('sha256').update(await readFile(file)).digest('hex').slice(0, 12);
+    assert.match(path.basename(file), new RegExp(`\\.${digest}\\.(?:css|js)$`));
   }
 });
 
-test('public pages initialize the saved theme before styles without weakening CSP', async () => {
-  const pages = [
-    ['en', 'index.html'],
-    ['ru', 'index.html'],
-    ['en', 'about', 'index.html'],
-    ['ru', 'about', 'index.html'],
-    ['en', 'plugins', 'clipswitch', 'index.html'],
-    ['ru', 'docs', 'clipswitch', 'index.html'],
-  ];
-  const themeMarkup = `<script>${THEME_INIT_SCRIPT}</script>`;
-  const manifest = await readAssetManifest();
-  const stylesPath = manifest.assets['/styles.css'];
-
-  for (const page of pages) {
-    const html = await readPublic(...page);
-    assert.ok(html.indexOf(themeMarkup) > -1, `${page.join('/')} has the inline theme initializer`);
-    assert.ok(html.indexOf(themeMarkup) < html.indexOf(stylesPath), `${page.join('/')} initializes theme before site styles`);
-  }
-
-  const headers = await readPublic('_headers');
+test('theme bootstrap precedes styles and CSP permits only hashed inline bootstraps', async () => {
+  const html = await readOutput('en', 'index.html');
+  const markup = `<script>${THEME_INIT_SCRIPT}</script>`;
   const hash = createHash('sha256').update(THEME_INIT_SCRIPT).digest('base64');
-  assert.match(headers, new RegExp(`script-src 'self' 'sha256-${hash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`));
-  assert.doesNotMatch(headers, /script-src[^\n]*'unsafe-inline'/);
+  assert.ok(html.indexOf(markup) < html.indexOf('styles.'));
+  assert.match(html, new RegExp(`sha256-${hash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  assert.doesNotMatch(html, /unsafe-inline|frame-ancestors/);
+  assert.match(html, /frame-src https:\/\/www\.youtube-nocookie\.com/);
 });
 
-test('every external CSS and JavaScript reference uses a current content hash', async () => {
-  const manifest = await readAssetManifest();
-  const manifestPaths = Object.values(manifest.assets).sort();
-  const manifestPathSet = new Set(manifestPaths);
-  const publicFiles = await listFiles(PUBLIC);
-  const htmlFiles = publicFiles.filter(file => path.extname(file).toLowerCase() === '.html');
-
-  assert.ok(manifestPaths.length > 0);
-  for (const [sourcePath, assetPath] of Object.entries(manifest.assets)) {
-    assert.match(sourcePath, /^\/.+\.(?:css|js)$/);
-    assert.match(assetPath, /^\/hashed-assets\/.+\.[a-f0-9]{12}\.(?:css|js)$/);
-
-    const assetFile = path.join(PUBLIC, ...assetPath.slice(1).split('/'));
-    const contents = await readFile(assetFile);
-    const expectedHash = createHash('sha256').update(contents).digest('hex').slice(0, 12);
-    assert.match(assetPath, new RegExp(`\\.${expectedHash}\\.(?:css|js)$`));
-  }
-
-  for (const htmlFile of htmlFiles) {
-    const html = await readFile(htmlFile, 'utf8');
-    for (const match of html.matchAll(/\b(?:src|href)="([^\"]+\.(?:css|js)(?:[?#][^\"]*)?)"/gi)) {
-      const pathname = match[1].split(/[?#]/, 1)[0];
-      assert.ok(manifestPathSet.has(pathname), `${path.relative(PUBLIC, htmlFile)} references current hashed asset ${pathname}`);
-    }
-  }
-
-  const generatedAssetFiles = publicFiles
-    .filter(file => file.startsWith(path.join(PUBLIC, 'hashed-assets')))
-    .map(file => `/${path.relative(PUBLIC, file).replaceAll(path.sep, '/')}`)
-    .sort();
-  assert.deepEqual(generatedAssetFiles, manifestPaths, 'no stale fingerprinted assets remain');
-});
-
-test('Cloudflare cache headers revalidate mutable output and only cache hashed assets immutably', async () => {
-  const headers = await readPublic('_headers');
-  assert.match(headers, /\/hashed-assets\/\*\s+Cache-Control: public, max-age=31536000, immutable/);
-  assert.equal((headers.match(/immutable/g) || []).length, 1);
-
-  for (const route of ['/data/*', '/generated-docs/*', '/assets/*', '/en/*', '/ru/*', '/asset-manifest.json', '/robots.txt', '/sitemap.xml']) {
-    const escapedRoute = route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    assert.match(headers, new RegExp(`${escapedRoute}\\s+Cache-Control: no-cache`));
-  }
-
-  for (const securityHeader of [
-    'X-Content-Type-Options: nosniff',
-    'Referrer-Policy: strict-origin-when-cross-origin',
-    'Content-Security-Policy:',
-    'X-Frame-Options: SAMEORIGIN',
-  ]) {
-    assert.match(headers, new RegExp(securityHeader));
+test('renderer supports project Pages base path while canonical stays on quartzlab.ru', () => {
+  const plugin = {
+    slug: 'example', name: 'Example', category: { en: 'Tools', ru: 'Инструменты' }, version: '1.0.0', unityVersion: '2022.3+', license: 'MIT', featured: true,
+    updatedAt: '2026-01-01', cover: '/assets/example.png', media: [], releaseUrl: 'https://github.com/quartz-lab/example/releases/tag/v1.0.0', repositoryUrl: 'https://github.com/quartz-lab/example', documentationAvailable: false, assetStoreUrl: null, tags: [],
+    i18n: { en: { subtitle: 'Example', description: 'Example.', features: ['One'] }, ru: { subtitle: 'Пример', description: 'Пример.', features: ['Один'] } },
+  };
+  const opts = { basePath: '/quartzlab-site', siteOrigin: 'https://quartzlab.ru' };
+  const home = renderHomePage([plugin], { example: 5 }, 'en', opts);
+  const detail = renderPluginPage(plugin, 5, 'en', opts);
+  const about = renderAboutPage('en', opts);
+  for (const html of [home, detail, about]) {
+    assert.match(html, /(?:href|src)="\/quartzlab-site\//);
+    assert.doesNotMatch(html, /(?:href|src)="\/assets\//);
+    assert.match(html, /canonical" href="https:\/\/quartzlab\.ru\/en\//);
+    assert.doesNotMatch(html, /quartzlab\.ru\/quartzlab-site/);
   }
 });
 
-test('localized footers use descriptive site navigation and synchronized catalog wording', async () => {
-  const cases = [
-    { language: 'en', catalog: 'Unity plugin catalog', about: 'About QuartzLab', sync: 'automatic synchronization with GitHub Releases' },
-    { language: 'ru', catalog: 'Каталог Unity-плагинов', about: 'О QuartzLab', sync: 'автоматической синхронизацией с GitHub Releases' },
-  ];
-
-  for (const item of cases) {
-    for (const page of [
-      [item.language, 'index.html'],
-      [item.language, 'about', 'index.html'],
-      [item.language, 'plugins', 'clipswitch', 'index.html'],
-      [item.language, 'docs', 'clipswitch', 'index.html'],
-    ]) {
-      const html = await readPublic(...page);
-      assert.match(html, new RegExp(`<nav class="footer-links"[^>]*>[\\s\\S]*${item.catalog}[\\s\\S]*${item.about}[\\s\\S]*<\\/nav>`));
-      assert.match(html, new RegExp(item.sync));
-      assert.doesNotMatch(html, /footer-links[\s\S]*?href="https:\/\/github\.com\/quartz-lab"/);
-    }
-  }
+test('about page keeps two content sections and the four local-vector social buttons', async () => {
+  const html = await readOutput('ru', 'about', 'index.html');
+  assert.equal((html.match(/class="project-section"/g) || []).length, 2);
+  assert.equal((html.match(/class="project-social-link"/g) || []).length, 4);
+  assert.doesNotMatch(html, /<h2>Принципы<\/h2>/);
 });
 
-test('about pages contain only the two requested project sections', async () => {
-  for (const language of ['en', 'ru']) {
-    const html = await readPublic(language, 'about', 'index.html');
-    assert.equal((html.match(/class="project-section"/g) || []).length, 2);
-    assert.doesNotMatch(html, /<h2>Principles<\/h2>|<h2>Принципы<\/h2>/);
+test('GitHub Pages output contains no legacy platform code', async () => {
+  const files = await listFiles(OUTPUT);
+  const legacyTerms = ['cloud' + 'flare', 'wrang' + 'ler', 'Pages ' + 'Functions', 'SUPPORT_' + 'ANALYTICS'];
+  for (const file of files.filter(file => ['.html', '.js', '.json', '.txt', '.xml'].includes(path.extname(file)))) {
+    const text = (await readFile(file, 'utf8')).toLowerCase();
+    assert.equal(legacyTerms.some(term => text.includes(term.toLowerCase())), false);
   }
-});
-
-test('sitemap includes every public language route and no legacy query pages', async () => {
-  const sitemap = await readPublic('sitemap.xml');
-  for (const route of [
-    '/en/plugins/clipswitch/',
-    '/ru/plugins/clipswitch/',
-    '/en/docs/clipswitch/',
-    '/ru/docs/clipswitch/',
-  ]) {
-    assert.match(sitemap, new RegExp(route.replaceAll('/', '\\/')));
-  }
-  assert.doesNotMatch(sitemap, /plugin\.html|docs\.html/);
-  assert.match(sitemap, /xmlns:xhtml=/);
-});
-
-test('legacy dynamic shells and route functions are absent', async () => {
-  for (const relativePath of [
-    ['plugin-shell.html'],
-    ['docs-shell.html'],
-    ['plugin.js'],
-    ['docs.js'],
-  ]) {
-    await assert.rejects(access(path.join(PUBLIC, ...relativePath)));
-  }
-
-  for (const relativePath of ['plugin.html.js', 'docs.html.js']) {
-    await assert.rejects(access(path.join(ROOT, 'functions', relativePath)));
-  }
-});
-
-test('catalog failures keep technical details in the console and show localized copy', async () => {
-  const catalog = await readPublic('catalog.js');
-  const site = await readPublic('site.js');
-  assert.match(catalog, /Каталог временно недоступен\. Попробуйте обновить страницу немного позже\./);
-  assert.match(catalog, /The catalog is temporarily unavailable\. Please try refreshing the page later\./);
-  assert.match(catalog, /console\.error\('Catalog data loading failed\.'/);
-  assert.doesNotMatch(catalog, /Q\.escape\(error\.message\)/);
-  assert.match(site, /response\.ok/);
-  assert.match(site, /content-type/);
-  assert.match(site, /response\.json\(\)/);
 });

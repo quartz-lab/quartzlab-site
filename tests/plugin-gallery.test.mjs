@@ -51,8 +51,8 @@ test('video media stays lazy and YouTube embeds are created only by the gallery 
     { type: 'video', src: '/assets/demo.mp4', poster: '/assets/poster.webp' },
     { type: 'image', src: '/assets/preview.webp', alt: { en: 'Preview', ru: 'Превью' } },
   ]), 0, 'en');
-  const script = await readFile(path.join(ROOT, 'public', 'plugin-gallery.js'), 'utf8');
-  const css = await readFile(path.join(ROOT, 'public', 'styles.css'), 'utf8');
+  const script = await readFile(path.join(ROOT, 'site', 'scripts', 'plugin-gallery.js'), 'utf8');
+  const css = await readFile(path.join(ROOT, 'site', 'styles', 'styles.css'), 'utf8');
 
   assert.doesNotMatch(html, /<iframe/);
   assert.match(html, /data-activate-media="0"/);

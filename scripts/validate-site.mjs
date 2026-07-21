@@ -1,191 +1,250 @@
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  access,
-  readdir,
-  readFile,
-} from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 
 import { readJsonFile } from './lib/json-utils.mjs';
-import { verifyGeneratedSiteConfig } from './lib/site-config.mjs';
+import { normalizeBasePath } from './lib/site-paths.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TEXT_EXTENSIONS = new Set([
-  '.css', '.html', '.js', '.json', '.jsonc', '.md', '.mjs', '.txt', '.xml', '.yaml', '.yml',
-]);
-const IGNORED_DIRECTORIES = new Set(['.git', '.wrangler', 'node_modules']);
+const TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.md', '.mjs', '.txt', '.xml', '.yaml', '.yml']);
 const CONFLICT_MARKER = /^(?:<<<<<<<|=======|>>>>>>>)(?:\s|$)/m;
+const LEGACY_TERMS = ['cloud' + 'flare', 'wrang' + 'ler', 'SUPPORT_' + 'ANALYTICS', 'Pages ' + 'Functions', '/go/' + 'support'];
+const HASHED_NAME = /\.([0-9a-f]{12})\.(css|js)$/;
 
-async function listFiles(directory) {
+async function listFiles(directory, ignored = new Set()) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
-    if (entry.isDirectory() && IGNORED_DIRECTORIES.has(entry.name)) continue;
+    if (entry.isDirectory() && ignored.has(entry.name)) continue;
     const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await listFiles(target));
+    if (entry.isDirectory()) files.push(...await listFiles(target, ignored));
     if (entry.isFile()) files.push(target);
   }
   return files;
 }
 
-function publicFileFromUrl(publicPath, htmlFile, value) {
-  const withoutSuffix = value.split(/[?#]/, 1)[0];
-  if (!withoutSuffix || /^(?:[a-z][a-z\d+.-]*:|\/\/|data:|javascript:|#)/i.test(withoutSuffix)) return null;
-  let decoded;
-  try {
-    decoded = decodeURIComponent(withoutSuffix);
-  } catch {
-    decoded = withoutSuffix;
-  }
-  const target = decoded.startsWith('/')
-    ? path.resolve(publicPath, `.${decoded}`)
-    : path.resolve(path.dirname(htmlFile), decoded);
-  const relative = path.relative(publicPath, target);
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new Error(`asset URL escapes public/: ${value}`);
-  }
-  return target;
-}
-
-function isTextFile(filePath) {
-  return TEXT_EXTENSIONS.has(path.extname(filePath).toLowerCase())
-    || ['_headers', '_redirects'].includes(path.basename(filePath));
-}
+function toPosix(value) { return String(value).replaceAll(path.sep, '/'); }
+function sha256(buffer) { return createHash('sha256').update(buffer).digest('hex'); }
+function isExternal(value) { return /^(?:[a-z][a-z\d+.-]*:|\/\/|data:|javascript:|mailto:|tel:|#|\?)/i.test(value); }
 
 async function expectFile(filePath, label) {
-  try {
-    await access(filePath);
-  } catch (error) {
-    throw new Error(`${label} is missing: ${filePath}`, { cause: error });
-  }
+  try { await access(filePath); } catch (error) { throw new Error(`${label} is missing: ${filePath}`, { cause: error }); }
 }
 
-export async function validateSite({ root = ROOT, logger = console } = {}) {
-  const publicPath = path.join(root, 'public');
-  const jsonPaths = {
-    config: path.join(root, 'catalog', 'plugins.config.json'),
-    manifest: path.join(publicPath, 'asset-manifest.json'),
-    plugins: path.join(publicPath, 'data', 'plugins.json'),
-    downloads: path.join(publicPath, 'data', 'downloads.json'),
-  };
+function stripBase(value, basePath) {
+  if (!value.startsWith('/')) return value;
+  if (basePath === '/') return value;
+  if (value === basePath) return '/';
+  if (!value.startsWith(`${basePath}/`)) throw new Error(`internal URL is missing SITE_BASE_PATH ${basePath}: ${value}`);
+  return value.slice(basePath.length) || '/';
+}
+
+function outputFileForUrl(outputPath, htmlFile, rawValue, basePath) {
+  const value = rawValue.split(/[?#]/, 1)[0];
+  if (!value || isExternal(value)) return null;
+  let decoded;
+  try { decoded = decodeURIComponent(value); } catch { decoded = value; }
+  const target = decoded.startsWith('/')
+    ? path.resolve(outputPath, `.${stripBase(decoded, basePath)}`)
+    : path.resolve(path.dirname(htmlFile), decoded);
+  const candidate = decoded.endsWith('/') ? path.join(target, 'index.html') : target;
+  const relative = path.relative(outputPath, candidate);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error(`URL escapes deployment output: ${rawValue}`);
+  return candidate;
+}
+
+function manifestFile(outputPath, target, basePath) {
+  const pathname = stripBase(target, basePath);
+  return path.join(outputPath, ...pathname.replace(/^\//, '').split('/'));
+}
+
+export async function validateSite({
+  root = ROOT,
+  outputPath = path.join(root, '_site'),
+  expectedBasePath,
+  maintenance,
+  logger = console,
+} = {}) {
   const errors = [];
   const checks = [];
-  const values = {};
+  let files = [];
+  let manifest;
+  let plugins;
+  let maintenanceMode = maintenance;
 
   async function check(label, operation) {
-    try {
-      const value = await operation();
-      checks.push(label);
-      return value;
-    } catch (error) {
-      errors.push(`${label}: ${error.message || error}`);
-      return undefined;
-    }
+    try { await operation(); checks.push(label); }
+    catch (error) { errors.push(`${label}: ${error.message || error}`); }
   }
 
-  for (const [name, filePath] of Object.entries(jsonPaths)) {
-    values[name] = await check(`valid JSON ${path.relative(root, filePath)}`, () => readJsonFile(filePath));
+  await check('deployment output exists', async () => { files = await listFiles(outputPath); if (!files.length) throw new Error('output directory is empty'); });
+  if (maintenanceMode === undefined) {
+    const robots = await readFile(path.join(outputPath, 'robots.txt'), 'utf8').catch(() => '');
+    maintenanceMode = /Disallow:\s*\//.test(robots);
   }
+  await check('all deployment JSON is valid', async () => {
+    for (const file of files.filter(file => path.extname(file).toLowerCase() === '.json')) await readJsonFile(file);
+    manifest = await readJsonFile(path.join(outputPath, 'asset-manifest.json'));
+    const pluginPath = path.join(outputPath, 'data', 'plugins.json');
+    try { plugins = await readJsonFile(pluginPath); } catch (error) { if (!maintenanceMode) throw error; }
+  });
 
-  await check('no Git conflict markers in text files', async () => {
-    const files = (await listFiles(root)).filter(isTextFile);
+  await check('no Git conflict markers', async () => {
+    const sourceFiles = await listFiles(root, new Set(['.git', '_site', 'node_modules']));
     const conflicts = [];
-    for (const file of files) {
+    for (const file of [...sourceFiles, ...files]) {
+      if (!TEXT_EXTENSIONS.has(path.extname(file).toLowerCase())) continue;
       if (CONFLICT_MARKER.test(await readFile(file, 'utf8'))) conflicts.push(path.relative(root, file));
     }
     if (conflicts.length) throw new Error(`found in ${conflicts.join(', ')}`);
   });
 
-  await check('generated Pages Functions config matches site.config.json', () => verifyGeneratedSiteConfig());
+  const basePath = normalizeBasePath(expectedBasePath || manifest?.basePath || '/');
+  await check('asset manifest matches fingerprinted files', async () => {
+    if (manifest?.version !== 2 || manifest.basePath !== basePath || !manifest.assets || Array.isArray(manifest.assets)) throw new Error('invalid asset-manifest.json structure');
+    const targets = new Set(Object.values(manifest.assets));
+    for (const [logical, target] of Object.entries(manifest.assets)) {
+      if (!/^\/.+\.(?:css|js)$/.test(logical) || typeof target !== 'string') throw new Error(`invalid manifest entry ${logical}`);
+      const file = manifestFile(outputPath, target, basePath);
+      const bytes = await readFile(file);
+      const match = path.basename(file).match(HASHED_NAME);
+      if (!match || sha256(bytes).slice(0, 12) !== match[1]) throw new Error(`filename does not match SHA-256 bytes: ${path.relative(outputPath, file)}`);
+    }
+    const hashedFiles = files.filter(file => toPosix(path.relative(outputPath, file)).startsWith('hashed-assets/'));
+    for (const file of hashedFiles) {
+      const bytes = await readFile(file);
+      const match = path.basename(file).match(HASHED_NAME);
+      if (!match || sha256(bytes).slice(0, 12) !== match[1]) throw new Error(`invalid fingerprinted file: ${path.relative(outputPath, file)}`);
+      const publicPath = `${basePath === '/' ? '' : basePath}/${toPosix(path.relative(outputPath, file))}`;
+      if (!targets.has(publicPath)) throw new Error(`fingerprinted file is absent from manifest: ${path.relative(outputPath, file)}`);
+    }
+  });
 
-  if (values.manifest) {
-    await check('all asset manifest targets exist', async () => {
-      if (!values.manifest.assets || typeof values.manifest.assets !== 'object' || Array.isArray(values.manifest.assets)) {
-        throw new Error('asset-manifest.json does not contain an assets object');
-      }
-      for (const [source, target] of Object.entries(values.manifest.assets)) {
-        if (typeof source !== 'string' || typeof target !== 'string' || !target.startsWith('/')) {
-          throw new Error(`invalid manifest entry ${source}: ${String(target)}`);
-        }
-        await expectFile(path.resolve(publicPath, `.${target}`), `manifest target for ${source}`);
-      }
-    });
-  }
-
-  await check('all local CSS and JavaScript links in generated HTML exist', async () => {
-    const htmlFiles = (await listFiles(publicPath)).filter(file => path.extname(file).toLowerCase() === '.html');
+  const htmlFiles = files.filter(file => path.extname(file).toLowerCase() === '.html');
+  await check('all local HTML asset and internal links exist', async () => {
     for (const htmlFile of htmlFiles) {
       const html = await readFile(htmlFile, 'utf8');
-      for (const match of html.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+\.(?:css|js)(?:[?#][^"']*)?)["']/gi)) {
-        const target = publicFileFromUrl(publicPath, htmlFile, match[1]);
-        if (target) await expectFile(target, `${path.relative(publicPath, htmlFile)} reference ${match[1]}`);
+      for (const match of html.matchAll(/\b(?:src|href|poster|data-media-src|data-media-full-src|data-media-poster)\s*=\s*["']([^"']+)["']/gi)) {
+        const value = match[1];
+        if (/^https?:/i.test(value) || /^(?:data:|mailto:|tel:|#|\?)/i.test(value)) continue;
+        const target = outputFileForUrl(outputPath, htmlFile, value, basePath);
+        if (target) await expectFile(target, `${path.relative(outputPath, htmlFile)} reference ${value}`);
       }
     }
   });
 
-  if (values.plugins) {
-    await check('plugin data and localized plugin routes are complete', async () => {
-      if (!Array.isArray(values.plugins)) throw new Error('public/data/plugins.json must contain an array');
-      for (const plugin of values.plugins) {
-        if (!/^[a-z0-9-]+$/.test(plugin?.slug || '')) throw new Error(`invalid plugin slug: ${String(plugin?.slug)}`);
-        for (const language of ['ru', 'en']) {
-          await expectFile(
-            path.join(publicPath, language, 'plugins', plugin.slug, 'index.html'),
-            `${language.toUpperCase()} plugin page for ${plugin.slug}`,
-          );
-          if (plugin.documentationAvailable) {
-            await expectFile(
-              path.join(publicPath, language, 'docs', plugin.slug, 'index.html'),
-              `${language.toUpperCase()} documentation page for ${plugin.slug}`,
-            );
-          }
-        }
+  await check('HTML uses fingerprinted CSS and JavaScript only', async () => {
+    const logicalSources = new Set(Object.keys(manifest.assets));
+    for (const htmlFile of htmlFiles) {
+      const html = await readFile(htmlFile, 'utf8');
+      for (const logical of logicalSources) {
+        const rootReference = basePath === '/' ? logical : `${basePath}${logical}`;
+        if (html.includes(`"${rootReference}"`) || html.includes(`'${rootReference}'`)) throw new Error(`${path.relative(outputPath, htmlFile)} still references ${logical}`);
       }
-    });
-  }
-
-  await check('sitemap.xml and robots.txt exist', async () => {
-    await expectFile(path.join(publicPath, 'sitemap.xml'), 'sitemap.xml');
-    await expectFile(path.join(publicPath, 'robots.txt'), 'robots.txt');
+      for (const match of html.matchAll(/\b(?:src|href)=["']([^"']+\.(?:css|js)(?:[?#][^"']*)?)["']/gi)) {
+        if (!match[1].includes('/hashed-assets/')) throw new Error(`${path.relative(outputPath, htmlFile)} references non-fingerprinted ${match[1]}`);
+      }
+    }
   });
 
-  await check('public pages do not reference quartzlab-site.pages.dev', async () => {
-    const files = (await listFiles(publicPath)).filter(file => [
-      '.html', '.xml', '.txt',
-    ].includes(path.extname(file).toLowerCase()));
+  await check('required static entry files exist', async () => {
+    for (const relative of ['index.html', '404.html', 'robots.txt', 'sitemap.xml']) await expectFile(path.join(outputPath, relative), relative);
+  });
+
+  await check('RU and EN plugin routes are complete', async () => {
+    if (maintenanceMode) return;
+    if (!Array.isArray(plugins) || !plugins.length) throw new Error('data/plugins.json must contain plugins');
+    for (const plugin of plugins) {
+      if (!/^[a-z0-9-]+$/.test(plugin.slug || '')) throw new Error(`invalid slug ${plugin.slug}`);
+      for (const value of [plugin.cover, ...(plugin.media || []).flatMap(item => [item.src, item.fullSrc, item.poster])]) {
+        if (typeof value !== 'string' || !value.startsWith('/')) continue;
+        await expectFile(manifestFile(outputPath, value, basePath), `plugin asset ${value}`);
+      }
+      for (const language of ['ru', 'en']) {
+        await expectFile(path.join(outputPath, language, 'plugins', plugin.slug, 'index.html'), `${language} plugin page for ${plugin.slug}`);
+        if (plugin.documentationAvailable) await expectFile(path.join(outputPath, language, 'docs', plugin.slug, 'index.html'), `${language} docs page for ${plugin.slug}`);
+      }
+    }
+  });
+
+  await check('catalog cards are static and do not use runtime fetch', async () => {
+    if (maintenanceMode) return;
+    for (const language of ['ru', 'en']) {
+      const html = await readFile(path.join(outputPath, language, 'index.html'), 'utf8');
+      if (!html.includes('data-plugin-card') || /Loading catalog|Загрузка каталога/.test(html)) throw new Error(`${language} catalog has no static cards`);
+      if (/\bfetch\s*\(/.test(html)) throw new Error(`${language} catalog contains fetch()`);
+    }
+    const scripts = files.filter(file => path.extname(file) === '.js');
+    for (const file of scripts) if (/\bfetch\s*\([^)]*(?:plugins|downloads)\.json/i.test(await readFile(file, 'utf8'))) throw new Error(`runtime catalog fetch in ${path.relative(outputPath, file)}`);
+  });
+
+  await check('SEO URLs use quartzlab.ru', async () => {
+    if (maintenanceMode) return;
+    for (const file of [...htmlFiles, path.join(outputPath, 'sitemap.xml'), path.join(outputPath, 'robots.txt')]) {
+      const text = await readFile(file, 'utf8');
+      if (/quartzlab-site\.pages\.dev/i.test(text)) throw new Error(`legacy origin in ${path.relative(outputPath, file)}`);
+      for (const match of text.matchAll(/(?:rel=["'](?:canonical|alternate)["'][^>]*href=|property=["']og:url["'][^>]*content=)["'](https?:\/\/[^"']+)/gi)) {
+        if (!match[1].startsWith('https://quartzlab.ru/')) throw new Error(`wrong SEO origin in ${path.relative(outputPath, file)}: ${match[1]}`);
+      }
+    }
+  });
+
+  await check('Boosty links are direct and work without JavaScript', async () => {
+    if (maintenanceMode) return;
+    let count = 0;
+    for (const file of htmlFiles) {
+      const html = await readFile(file, 'utf8');
+      for (const match of html.matchAll(/href=["']([^"']*boosty[^"']*)["']/gi)) {
+        count += 1;
+        if (match[1] !== 'https://boosty.to/quartzlab') throw new Error(`non-direct Boosty link in ${path.relative(outputPath, file)}`);
+      }
+    }
+    if (!count) throw new Error('no Boosty links found');
+  });
+
+  await check('CSP supports local assets and lazy YouTube embeds', async () => {
+    if (maintenanceMode) return;
+    for (const htmlFile of htmlFiles.filter(file => !toPosix(path.relative(outputPath, file)).startsWith('generated-docs/'))) {
+      const html = await readFile(htmlFile, 'utf8');
+      const policy = html.match(/http-equiv=["']Content-Security-Policy["']\s+content=["']([^"']+)/i)?.[1] || '';
+      if (!policy.includes("script-src &#39;self&#39;") || !policy.includes("style-src &#39;self&#39;") || !policy.includes('frame-src https://www.youtube-nocookie.com')) throw new Error(`incomplete CSP in ${path.relative(outputPath, htmlFile)}`);
+      if (/frame-ancestors/i.test(policy)) throw new Error(`unsupported meta CSP directive in ${path.relative(outputPath, htmlFile)}`);
+      for (const match of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)) {
+        const hash = createHash('sha256').update(match[1], 'utf8').digest('base64');
+        if (!policy.includes(`sha256-${hash}`)) throw new Error(`inline script hash is absent from CSP in ${path.relative(outputPath, htmlFile)}`);
+      }
+    }
+  });
+
+  await check('deployment has no legacy platform code, support route, or secrets', async () => {
     const offenders = [];
     for (const file of files) {
-      if ((await readFile(file, 'utf8')).includes('quartzlab-site.pages.dev')) offenders.push(path.relative(publicPath, file));
+      const relative = toPosix(path.relative(outputPath, file));
+      if (/(^|\/)(?:\.env(?:\.|$)|\.dev\.vars$)|secret|credential/i.test(relative)) offenders.push(relative);
+      const text = TEXT_EXTENSIONS.has(path.extname(file).toLowerCase()) ? await readFile(file, 'utf8') : '';
+      if (LEGACY_TERMS.some(term => text.toLowerCase().includes(term.toLowerCase()))) offenders.push(relative);
     }
-    if (offenders.length) throw new Error(`legacy Pages origin found in ${offenders.join(', ')}`);
+    if (offenders.length) throw new Error(`found in ${[...new Set(offenders)].join(', ')}`);
   });
 
-  if (values.plugins && values.manifest) {
-    await check('localized catalogs load the generated plugins data and catalog script', async () => {
-      if (!Array.isArray(values.plugins)) throw new Error('plugins.json is not an array');
-      const catalogAsset = values.manifest.assets?.['/catalog.js'];
-      if (!catalogAsset) throw new Error('asset manifest has no /catalog.js entry');
-      for (const language of ['ru', 'en']) {
-        const html = await readFile(path.join(publicPath, language, 'index.html'), 'utf8');
-        if (!html.includes(catalogAsset)) throw new Error(`/${language}/ does not load ${catalogAsset}`);
-      }
-    });
-  }
+  await check('maintenance indexing state is correct', async () => {
+    const robots = await readFile(path.join(outputPath, 'robots.txt'), 'utf8');
+    const sitemap = await readFile(path.join(outputPath, 'sitemap.xml'), 'utf8');
+    if (maintenanceMode) {
+      if (!/Disallow:\s*\//.test(robots) || /<url>/.test(sitemap)) throw new Error('maintenance robots or sitemap is unsafe');
+      for (const file of htmlFiles) if (!/noindex,nofollow/.test(await readFile(file, 'utf8'))) throw new Error(`maintenance noindex missing in ${path.relative(outputPath, file)}`);
+    } else if (!/Allow:\s*\//.test(robots) || !/<url>/.test(sitemap)) throw new Error('normal robots or sitemap is incomplete');
+  });
 
-  if (errors.length) {
-    throw new Error(`Site validation failed (${errors.length} problem${errors.length === 1 ? '' : 's'}):\n- ${errors.join('\n- ')}`);
-  }
-
+  if (errors.length) throw new Error(`Site validation failed (${errors.length} problems):\n- ${errors.join('\n- ')}`);
   logger.log(`Site validation passed: ${checks.length} checks.`);
-  return { checks };
+  return { checks, basePath };
 }
 
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirectRun) {
-  try {
-    await validateSite();
-  } catch (error) {
-    console.error(error.message || error);
-    process.exitCode = 1;
-  }
+  const outputArgument = process.argv[2] || '_site';
+  try { await validateSite({ outputPath: path.resolve(ROOT, outputArgument) }); }
+  catch (error) { console.error(error.message || error); process.exitCode = 1; }
 }
