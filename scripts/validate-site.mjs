@@ -11,6 +11,7 @@ const TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.json', '.md', '.mjs',
 const CONFLICT_MARKER = /^(?:<<<<<<<|=======|>>>>>>>)(?:\s|$)/m;
 const LEGACY_TERMS = ['cloud' + 'flare', 'wrang' + 'ler', 'SUPPORT_' + 'ANALYTICS', 'Pages ' + 'Functions', '/go/' + 'support'];
 const HASHED_NAME = /\.([0-9a-f]{12})\.(css|js)$/;
+const FORBIDDEN_PRODUCTION_PREFIX = '/quartzlab-site/';
 
 async function listFiles(directory, ignored = new Set()) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -101,6 +102,17 @@ export async function validateSite({
   });
 
   const basePath = normalizeBasePath(expectedBasePath || manifest?.basePath || '/');
+  await check('production output has no project Pages base path', async () => {
+    if (basePath !== '/') return;
+    const offenders = [];
+    for (const file of files) {
+      if (!TEXT_EXTENSIONS.has(path.extname(file).toLowerCase())) continue;
+      const text = await readFile(file, 'utf8');
+      if (text.includes(FORBIDDEN_PRODUCTION_PREFIX)) offenders.push(path.relative(outputPath, file));
+    }
+    if (offenders.length) throw new Error(`${FORBIDDEN_PRODUCTION_PREFIX} found in ${offenders.join(', ')}`);
+  });
+
   await check('asset manifest matches fingerprinted files', async () => {
     if (manifest?.version !== 2 || manifest.basePath !== basePath || !manifest.assets || Array.isArray(manifest.assets)) throw new Error('invalid asset-manifest.json structure');
     const targets = new Set(Object.values(manifest.assets));
@@ -150,6 +162,24 @@ export async function validateSite({
 
   await check('required static entry files exist', async () => {
     for (const relative of ['index.html', '404.html', 'robots.txt', 'sitemap.xml']) await expectFile(path.join(outputPath, relative), relative);
+  });
+
+  await check('production root redirect and 404 use root assets', async () => {
+    if (basePath !== '/') return;
+    const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
+    const notFoundHtml = await readFile(path.join(outputPath, '404.html'), 'utf8');
+    for (const route of ['/ru/', '/en/']) {
+      if (!rootHtml.includes(`href="${route}"`)) throw new Error(`root index does not link to ${route}`);
+    }
+    if (!rootHtml.includes('data-site-base-path="/"')) throw new Error('root index does not declare the root base path');
+    const redirectAsset = manifest.assets['/language-redirect.js'];
+    const stylesAsset = manifest.assets['/styles.css'];
+    const siteAsset = manifest.assets['/site.js'];
+    if (!redirectAsset || !rootHtml.includes(`src="${redirectAsset}"`)) throw new Error('root language redirect is missing or not fingerprinted');
+    if (!stylesAsset || !notFoundHtml.includes(`href="${stylesAsset}"`)) throw new Error('404.html does not use the fingerprinted site stylesheet');
+    if (!siteAsset || !notFoundHtml.includes(`src="${siteAsset}"`)) throw new Error('404.html does not use the fingerprinted site script');
+    const redirectScript = await readFile(manifestFile(outputPath, redirectAsset, basePath), 'utf8');
+    if (!redirectScript.includes('location.replace') || !redirectScript.includes('dataset.siteBasePath') || !redirectScript.includes('/${language}/')) throw new Error('root language redirect does not resolve to /ru/ or /en/ from the configured base path');
   });
 
   await check('RU and EN plugin routes are complete', async () => {

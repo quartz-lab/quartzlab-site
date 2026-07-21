@@ -69,6 +69,8 @@ GitHub Pages возвращает для статической maintenance-ст
 
 Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) запускается при push в `main`, pull request, вручную и ежедневно по cron. Он использует только официальные `actions/*`, собирает чистый `_site`, валидирует его, запускает тесты, загружает Pages artifact и публикует именно этот artifact. Pull request выполняет проверку, но не production deploy.
 
+Production workflow для custom domain всегда передаёт `SITE_ORIGIN=https://quartzlab.ru` и `SITE_BASE_PATH=/`. Значение `base_path`, рассчитанное `actions/configure-pages` для стандартного project URL, намеренно не используется при production-сборке. Эмуляция `/quartzlab-site` остаётся только отдельной локальной проверкой.
+
 Ежедневная синхронизация не изменяет репозиторий: bot-коммитов, `git add`, `git commit` и `git push` в workflow нет. При необходимости создайте Actions secret `GITHUB_PUBLIC_READ_TOKEN`; для одного публичного плагина он обычно не нужен.
 
 Ручной запуск: **Actions → Build and deploy GitHub Pages → Run workflow → main → Run workflow**. Затем откройте выполненный run и убедитесь, что jobs `build` и `deploy` зелёные, а environment `github-pages` указывает на production URL.

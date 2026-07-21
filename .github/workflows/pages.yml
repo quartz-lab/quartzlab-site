@@ -37,7 +37,7 @@ jobs:
       - name: Build site
         env:
           SITE_ORIGIN: https://quartzlab.ru
-          SITE_BASE_PATH: ${{ steps.pages.outputs.base_path || '/' }}
+          SITE_BASE_PATH: /
           GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
         run: node scripts/build-site.mjs
 
