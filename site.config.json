@@ -1,4 +1,14 @@
 {
+  "brand": {
+    "name": "QuartzLab",
+    "origin": "https://quartzlab.ru"
+  },
+  "socials": {
+    "github": "https://github.com/quartz-lab",
+    "youtube": "https://www.youtube.com/@quartz-lab",
+    "telegram": null,
+    "boosty": "https://boosty.to/quartzlab"
+  },
   "maintenance": {
     "enabled": false
   }

@@ -1,0 +1,18 @@
+{
+  "name": "quartzlab-site",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "validate": "node scripts/validate-site.mjs _site",
+    "test": "node --test",
+    "dev": "node scripts/serve.mjs",
+    "maintenance:on": "node scripts/maintenance.mjs on",
+    "maintenance:off": "node scripts/maintenance.mjs off",
+    "maintenance:status": "node scripts/maintenance.mjs status",
+    "check": "npm run build && npm run validate && npm test"
+  }
+}

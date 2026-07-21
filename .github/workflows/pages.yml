@@ -38,6 +38,7 @@ jobs:
         env:
           SITE_ORIGIN: https://quartzlab.ru
           SITE_BASE_PATH: /
+          SITE_MAINTENANCE: ${{ vars.SITE_MAINTENANCE || 'false' }}
           GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
         run: node scripts/build-site.mjs
 

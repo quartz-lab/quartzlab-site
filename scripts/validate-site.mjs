@@ -33,6 +33,19 @@ async function expectFile(filePath, label) {
   try { await access(filePath); } catch (error) { throw new Error(`${label} is missing: ${filePath}`, { cause: error }); }
 }
 
+async function configuredPluginSlugs(root) {
+  const configs = await readJsonFile(path.join(root, 'catalog', 'plugins.config.json'));
+  if (!Array.isArray(configs) || !configs.length) throw new Error('catalog/plugins.config.json must contain plugins');
+  return configs.map(config => {
+    let repository;
+    try { repository = new URL(config.repository); }
+    catch { throw new Error(`invalid plugin repository URL: ${config.repository}`); }
+    const slug = repository.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.git$/i, '').toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(slug || '')) throw new Error(`invalid plugin slug from ${config.repository}`);
+    return slug;
+  });
+}
+
 function stripBase(value, basePath) {
   if (!value.startsWith('/')) return value;
   if (basePath === '/') return value;
@@ -165,7 +178,7 @@ export async function validateSite({
   });
 
   await check('production root redirect and 404 use root assets', async () => {
-    if (basePath !== '/') return;
+    if (maintenanceMode || basePath !== '/') return;
     const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
     const notFoundHtml = await readFile(path.join(outputPath, '404.html'), 'utf8');
     for (const route of ['/ru/', '/en/']) {
@@ -180,6 +193,39 @@ export async function validateSite({
     if (!siteAsset || !notFoundHtml.includes(`src="${siteAsset}"`)) throw new Error('404.html does not use the fingerprinted site script');
     const redirectScript = await readFile(manifestFile(outputPath, redirectAsset, basePath), 'utf8');
     if (!redirectScript.includes('location.replace') || !redirectScript.includes('dataset.siteBasePath') || !redirectScript.includes('/${language}/')) throw new Error('root language redirect does not resolve to /ru/ or /en/ from the configured base path');
+  });
+
+  await check('maintenance routes and fingerprinted assets are complete', async () => {
+    if (!maintenanceMode) return;
+    if (basePath !== '/') throw new Error(`maintenance production build must use SITE_BASE_PATH=/, received ${basePath}`);
+    const maintenanceAsset = manifest.assets['/maintenance.css'];
+    if (!maintenanceAsset || !/^\/hashed-assets\/maintenance\.[0-9a-f]{12}\.css$/.test(maintenanceAsset)) {
+      throw new Error('fingerprinted maintenance.css is missing');
+    }
+    if (manifest.assets['/language-redirect.js'] || Object.keys(manifest.assets).some(logical => logical.endsWith('.js'))) {
+      throw new Error('maintenance manifest contains JavaScript or language-redirect.js');
+    }
+    if (files.some(file => path.extname(file).toLowerCase() === '.js')) throw new Error('maintenance output contains JavaScript files');
+
+    const slugs = await configuredPluginSlugs(root);
+    const routes = ['index.html', '404.html'];
+    for (const language of ['ru', 'en']) {
+      routes.push(`${language}/index.html`, `${language}/about/index.html`);
+      for (const slug of slugs) routes.push(`${language}/plugins/${slug}/index.html`, `${language}/docs/${slug}/index.html`);
+    }
+    for (const route of routes) {
+      const file = path.join(outputPath, ...route.split('/'));
+      await expectFile(file, `maintenance route ${route}`);
+      const html = await readFile(file, 'utf8');
+      if (!html.includes(`href="${maintenanceAsset}"`)) throw new Error(`${route} does not use fingerprinted maintenance.css`);
+      if (/<script\b/i.test(html)) throw new Error(`${route} contains a script`);
+      if (/language-redirect\.js/i.test(html)) throw new Error(`${route} contains language-redirect.js`);
+      if (!/noindex,nofollow/i.test(html)) throw new Error(`${route} is missing noindex,nofollow`);
+    }
+    const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
+    for (const route of ['/ru/', '/en/']) {
+      if (!rootHtml.includes(`href="${route}"`)) throw new Error(`maintenance root does not link to ${route}`);
+    }
   });
 
   await check('RU and EN plugin routes are complete', async () => {

@@ -9,9 +9,9 @@ import {
   normalizeBasePath,
   normalizeSiteOrigin,
 } from './site-paths.mjs';
+import { DEFAULT_SITE_CONFIG } from './site-config.mjs';
 
 export const THEME_INIT_SCRIPT = '(()=>{let t;try{t=localStorage.getItem("quartzlab-theme")}catch{}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})();';
-export const BOOSTY_URL = 'https://boosty.to/quartzlab';
 const COPYRIGHT_YEAR = 2026;
 
 const UI = {
@@ -46,9 +46,12 @@ const UI = {
 };
 
 function options(value = {}) {
+  const brand = { ...DEFAULT_SITE_CONFIG.brand, ...(value.brand || {}) };
   return {
-    siteOrigin: normalizeSiteOrigin(value.siteOrigin || DEFAULT_SITE_ORIGIN),
+    siteOrigin: normalizeSiteOrigin(value.siteOrigin || brand.origin || DEFAULT_SITE_ORIGIN),
     basePath: normalizeBasePath(value.basePath || DEFAULT_SITE_BASE_PATH),
+    brand,
+    socials: { ...DEFAULT_SITE_CONFIG.socials, ...(value.socials || {}) },
   };
 }
 
@@ -62,7 +65,7 @@ function sha256Base64(value) {
   return createHash('sha256').update(value, 'utf8').digest('base64');
 }
 
-function jsonLd({ title, description, pathname, image = '/assets/quartzlab-mark.svg', siteOrigin }) {
+function jsonLd({ title, description, pathname, image = '/assets/quartzlab-mark.svg', siteOrigin, brandName }) {
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -70,7 +73,7 @@ function jsonLd({ title, description, pathname, image = '/assets/quartzlab-mark.
     description,
     url: canonicalUrl(pathname, siteOrigin),
     primaryImageOfPage: canonicalUrl(image, siteOrigin),
-    isPartOf: { '@type': 'WebSite', name: 'QuartzLab', url: canonicalUrl('/', siteOrigin) },
+    isPartOf: { '@type': 'WebSite', name: brandName, url: canonicalUrl('/', siteOrigin) },
   });
 }
 
@@ -90,7 +93,7 @@ function themeInitMarkup() {
   return `<script>${THEME_INIT_SCRIPT}</script>`;
 }
 
-function seoMarkup({ language, pathname, alternatePath, title, description, image = '/assets/quartzlab-mark.svg', type = 'website', siteOrigin }) {
+function seoMarkup({ language, pathname, alternatePath, title, description, image = '/assets/quartzlab-mark.svg', type = 'website', siteOrigin, brandName }) {
   const canonical = canonicalUrl(pathname, siteOrigin);
   const alternateLanguage = language === 'en' ? 'ru' : 'en';
   const defaultPath = language === 'en' ? pathname : alternatePath;
@@ -99,7 +102,7 @@ function seoMarkup({ language, pathname, alternatePath, title, description, imag
   <link rel="alternate" hreflang="${alternateLanguage}" href="${escapeHtml(canonicalUrl(alternatePath, siteOrigin))}">
   <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalUrl(defaultPath, siteOrigin))}">
   <meta property="og:type" content="${type}">
-  <meta property="og:site_name" content="QuartzLab">
+  <meta property="og:site_name" content="${escapeHtml(brandName)}">
   <meta property="og:locale" content="${language === 'ru' ? 'ru_RU' : 'en_US'}">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
@@ -110,13 +113,13 @@ function seoMarkup({ language, pathname, alternatePath, title, description, imag
 
 function pageHead({ language, pathname, alternatePath, title, description, image, type, renderOptions }) {
   const opts = options(renderOptions);
-  const structuredData = jsonLd({ title, description, pathname, image, siteOrigin: opts.siteOrigin });
+  const structuredData = jsonLd({ title, description, pathname, image, siteOrigin: opts.siteOrigin, brandName: opts.brand.name });
   return `<meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   ${securityMeta([THEME_INIT_SCRIPT, structuredData])}
   <meta name="description" content="${escapeHtml(description)}">
   <title>${escapeHtml(title)}</title>
-  ${seoMarkup({ language, pathname, alternatePath, title, description, image, type, siteOrigin: opts.siteOrigin })}
+  ${seoMarkup({ language, pathname, alternatePath, title, description, image, type, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}
   <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
   ${themeInitMarkup()}
   <link rel="stylesheet" href="/styles.css">
@@ -141,8 +144,19 @@ function themeToggle(language) {
         </button>`;
 }
 
-export function siteHeader(language, { active = '', slug = '' } = {}) {
+function brandWordmark(name) {
+  const match = String(name).match(/^(.*?)(Lab)$/);
+  return match ? `${escapeHtml(match[1])}<span>${escapeHtml(match[2])}</span>` : escapeHtml(name);
+}
+
+function supportAnchor(renderOptions, className, label) {
+  const url = options(renderOptions).socials.boosty;
+  return url ? `<a class="${className}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>` : '';
+}
+
+export function siteHeader(language, { active = '', slug = '' } = {}, renderOptions = {}) {
   const ui = UI[language];
+  const opts = options(renderOptions);
   const route = active === 'docs'
     ? lang => `/${lang}/docs/${encodeURIComponent(slug)}/`
     : active === 'plugins' && slug
@@ -152,7 +166,7 @@ export function siteHeader(language, { active = '', slug = '' } = {}) {
         : lang => `/${lang}/`;
   return `<header class="site-header">
     <div class="shell header-inner">
-      <a class="brand" href="/${language}/" aria-label="QuartzLab ${language === 'ru' ? '— главная' : 'home'}"><img src="/assets/quartzlab-mark.svg" alt=""><span>Quartz<span>Lab</span></span></a>
+      <a class="brand" href="/${language}/" aria-label="${escapeHtml(opts.brand.name)} ${language === 'ru' ? '— главная' : 'home'}"><img src="/assets/quartzlab-mark.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
       <nav class="main-nav" aria-label="${escapeHtml(ui.navLabel)}">
         <a${active === 'plugins' ? ' class="active" aria-current="page"' : ''} href="/${language}/#plugins">${ui.plugins}</a>
         <a${active === 'about' ? ' class="active" aria-current="page"' : ''} href="/${language}/about/">${ui.about}</a>
@@ -163,24 +177,25 @@ export function siteHeader(language, { active = '', slug = '' } = {}) {
           <a data-language="en"${language === 'en' ? ' class="active" aria-current="true"' : ''} href="${route('en')}">EN</a>
         </div>
         ${themeToggle(language)}
-        <a class="header-support" href="${BOOSTY_URL}" target="_blank" rel="noopener noreferrer">${ui.support}</a>
+        ${supportAnchor(renderOptions, 'header-support', ui.support)}
       </div>
     </div>
   </header>`;
 }
 
-export function siteFooter(language) {
+export function siteFooter(language, renderOptions = {}) {
   const ui = UI[language];
+  const opts = options(renderOptions);
   return `<footer class="site-footer">
     <div class="shell footer-main">
       <div>
-        <a class="brand footer-brand" href="/${language}/"><img src="/assets/quartzlab-mark.svg" alt=""><span>Quartz<span>Lab</span></span></a>
+        <a class="brand footer-brand" href="/${language}/"><img src="/assets/quartzlab-mark.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
         <p>${ui.footerDescription}</p>
         <nav class="footer-links" aria-label="${language === 'ru' ? 'Навигация в подвале' : 'Footer navigation'}"><a href="/${language}/#plugins">${ui.footerCatalogLink}</a><a href="/${language}/about/">${ui.footerAboutLink}</a></nav>
       </div>
-      <div class="support-block"><span>${ui.footerSupportLabel}</span><p>${ui.footerSupportCopy}</p><a class="support-button" href="${BOOSTY_URL}" target="_blank" rel="noopener noreferrer">${ui.supportButton}</a></div>
+      <div class="support-block"><span>${ui.footerSupportLabel}</span><p>${ui.footerSupportCopy}</p>${supportAnchor(renderOptions, 'support-button', ui.supportButton)}</div>
     </div>
-    <div class="shell footer-bottom"><span>© ${COPYRIGHT_YEAR} QuartzLab</span><span>${ui.footerCatalog}</span></div>
+    <div class="shell footer-bottom"><span>© ${COPYRIGHT_YEAR} ${escapeHtml(opts.brand.name)}</span><span>${ui.footerCatalog}</span></div>
   </footer>`;
 }
 
@@ -217,7 +232,7 @@ export function renderHomePage(pluginRecords, downloads, language, renderOptions
 <html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}">
 <head>${pageHead({ language, pathname, alternatePath, title, description, renderOptions })}</head>
 <body>
-  ${siteHeader(language, { active: 'plugins' })}
+  ${siteHeader(language, { active: 'plugins' }, renderOptions)}
   <main>
     <section class="intro"><div class="hero-grid" aria-hidden="true"></div><div class="shell intro-layout"><div class="intro-inner"><p class="eyebrow">Unity Editor Tools</p><h1>${isRu ? 'Меньше рутины.<br>Больше времени на игру.' : 'Less busywork.<br>More time for your game.'}</h1><p class="intro-copy">${isRu ? 'Небольшие бесплатные плагины QuartzLab для задач, которые Unity заставляет делать слишком долго.' : 'Small, free QuartzLab plugins for the tasks Unity makes take too long.'}</p></div><div class="hero-mark" aria-hidden="true"><div class="mark-orbit"></div><img src="/assets/quartzlab-mark.svg" alt=""></div></div></section>
     <section class="catalog shell" id="plugins">
@@ -227,15 +242,25 @@ export function renderHomePage(pluginRecords, downloads, language, renderOptions
           <div id="pluginGrid" class="product-grid" aria-live="polite">${cards}</div><div id="emptyState" class="empty-state" hidden><strong>${isRu ? 'Ничего не найдено' : 'Nothing found'}</strong><span>${isRu ? 'Попробуй другую категорию или запрос.' : 'Try another category or search query.'}</span><button id="emptyReset" class="small-button" type="button">${isRu ? 'Сбросить фильтры' : 'Reset filters'}</button></div></div></div>
     </section>
   </main>
-  ${siteFooter(language)}
+  ${siteFooter(language, renderOptions)}
   <script src="/site.js" defer></script><script src="/catalog-interactions.js" defer></script>
 </body></html>`, renderOptions);
 }
 
-const SOCIAL_LINKS = `<a class="project-social-link" data-social="github" href="https://github.com/quartz-lab" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.12-1.47-1.12-1.47-.91-.62.07-.61.07-.61 1 .07 1.54 1.03 1.54 1.03.9 1.54 2.35 1.1 2.92.83.09-.65.35-1.1.64-1.35-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02a9.59 9.59 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.41.1 2.66.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg><span>GitHub</span></a>
-        <a class="project-social-link" data-social="youtube" href="https://www.youtube.com/@quartz-lab" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3.1 3.1 0 0 0-2.18-2.2C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.32.5A3.1 3.1 0 0 0 .5 6.2 32.4 32.4 0 0 0 0 12a32.4 32.4 0 0 0 .5 5.8 3.1 3.1 0 0 0 2.18 2.2c1.92.5 9.32.5 9.32.5s7.4 0 9.32-.5a3.1 3.1 0 0 0 2.18-2.2A32.4 32.4 0 0 0 24 12a32.4 32.4 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.4 3.7-6.4 3.7Z"/></svg><span>YouTube</span></a>
-        <a class="project-social-link" data-social="telegram" href="https://t.me/svetakpop1337" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m21.3 4.6-3 14.2c-.23 1-.84 1.24-1.7.77l-4.7-3.45-2.27 2.18c-.25.25-.47.47-.95.47l.34-4.82 8.78-7.93c.38-.34-.08-.54-.59-.2l-10.86 6.84-4.67-1.46c-1.01-.32-1.03-1.01.22-1.5L19.5 3.1c.83-.31 1.55.2 1.8 1.5Z"/></svg><span>Telegram</span></a>
-        <a class="project-social-link" data-social="boosty" href="${BOOSTY_URL}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.1 2h8.2l-1.5 7h3.6L9.2 22l1.7-9H5.6L8.1 2Zm2.2 3-1.2 5h5.5l.8-1.2h-4.2l.8-3.8h-1.7Z"/></svg><span>Boosty</span></a>`;
+const SOCIAL_ICONS = {
+  github: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.12-1.47-1.12-1.47-.91-.62.07-.61.07-.61 1 .07 1.54 1.03 1.54 1.03.9 1.54 2.35 1.1 2.92.83.09-.65.35-1.1.64-1.35-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02a9.59 9.59 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.41.1 2.66.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M23.5 6.2a3.1 3.1 0 0 0-2.18-2.2C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.32.5A3.1 3.1 0 0 0 .5 6.2 32.4 32.4 0 0 0 0 12a32.4 32.4 0 0 0 .5 5.8 3.1 3.1 0 0 0 2.18 2.2c1.92.5 9.32.5 9.32.5s7.4 0 9.32-.5a3.1 3.1 0 0 0 2.18-2.2A32.4 32.4 0 0 0 24 12a32.4 32.4 0 0 0-.5-5.8ZM9.6 15.7V8.3l6.4 3.7-6.4 3.7Z"/></svg>',
+  telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m21.3 4.6-3 14.2c-.23 1-.84 1.24-1.7.77l-4.7-3.45-2.27 2.18c-.25.25-.47.47-.95.47l.34-4.82 8.78-7.93c.38-.34-.08-.54-.59-.2l-10.86 6.84-4.67-1.46c-1.01-.32-1.03-1.01.22-1.5L19.5 3.1c.83-.31 1.55.2 1.8 1.5Z"/></svg>',
+  boosty: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.1 2h8.2l-1.5 7h3.6L9.2 22l1.7-9H5.6L8.1 2Zm2.2 3-1.2 5h5.5l.8-1.2h-4.2l.8-3.8h-1.7Z"/></svg>',
+};
+const SOCIAL_LABELS = { github: 'GitHub', youtube: 'YouTube', telegram: 'Telegram', boosty: 'Boosty' };
+
+function socialLinks(renderOptions) {
+  const socials = options(renderOptions).socials;
+  return Object.entries(SOCIAL_ICONS).flatMap(([name, icon]) => socials[name]
+    ? [`<a class="project-social-link" data-social="${name}" href="${escapeHtml(socials[name])}" target="_blank" rel="noopener noreferrer">${icon}<span>${SOCIAL_LABELS[name]}</span></a>`]
+    : []).join('\n        ');
+}
 
 export function renderAboutPage(language, renderOptions = {}) {
   const isRu = language === 'ru';
@@ -244,10 +269,10 @@ export function renderAboutPage(language, renderOptions = {}) {
   const title = isRu ? 'О QuartzLab' : 'About QuartzLab';
   const description = isRu ? 'О QuartzLab, его подходе к Unity Editor-инструментам, обратной связи и поддержке.' : 'About QuartzLab, its approach to Unity Editor tools, feedback channels, and support links.';
   return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head>${pageHead({ language, pathname, alternatePath, title, description, renderOptions })}</head><body>
-  ${siteHeader(language, { active: 'about' })}
-  <main class="shell project-page"><section class="project-hero"><div><p class="eyebrow">QuartzLab</p><h1>${isRu ? 'Небольшие Unity Editor-инструменты для задач, которые должны решаться просто.' : 'Small Unity Editor tools for work that should stay simple.'}</h1><p class="project-copy">${isRu ? 'QuartzLab — независимый проект одного разработчика с фокусом на компактных editor-only плагинах. Цель простая: убрать повторяющуюся ручную работу, сделать изменения файлов предсказуемыми и не превращать маленький инструмент в отдельный фреймворк.' : 'QuartzLab is an independent one-developer project focused on compact editor-only plugins. The goal is to cut repeated manual work, keep file changes predictable, and avoid turning a small tool into a framework.'}</p></div><div class="project-social-row" aria-label="${isRu ? 'Ссылки проекта' : 'Project links'}">${SOCIAL_LINKS}</div></section>
+  ${siteHeader(language, { active: 'about' }, renderOptions)}
+  <main class="shell project-page"><section class="project-hero"><div><p class="eyebrow">QuartzLab</p><h1>${isRu ? 'Небольшие Unity Editor-инструменты для задач, которые должны решаться просто.' : 'Small Unity Editor tools for work that should stay simple.'}</h1><p class="project-copy">${isRu ? 'QuartzLab — независимый проект одного разработчика с фокусом на компактных editor-only плагинах. Цель простая: убрать повторяющуюся ручную работу, сделать изменения файлов предсказуемыми и не превращать маленький инструмент в отдельный фреймворк.' : 'QuartzLab is an independent one-developer project focused on compact editor-only plugins. The goal is to cut repeated manual work, keep file changes predictable, and avoid turning a small tool into a framework.'}</p></div><div class="project-social-row" aria-label="${isRu ? 'Ссылки проекта' : 'Project links'}">${socialLinks(renderOptions)}</div></section>
     <section class="project-flow"><section class="project-section"><h2>${isRu ? 'Чем занимается QuartzLab' : 'What QuartzLab does'}</h2><p>${isRu ? 'QuartzLab делает сфокусированные инструменты для Unity Editor: импорт, замена, проверка и чистка ассетов без runtime-систем и скрытых пайплайнов. Плагины намеренно остаются узкими: один инструмент, одна понятная задача, минимум лишних настроек.' : 'QuartzLab builds focused Unity Editor tools for importing, replacing, reviewing, and cleaning up assets without adding runtime systems or hidden pipelines. Plugins stay narrow on purpose: one tool, one clear job, minimum setup.'}</p></section><section class="project-section"><h2>${isRu ? 'Как разрабатываются плагины' : 'How the plugins are built'}</h2><p>${isRu ? 'Основная цель — Unity LTS. Предпочтительный подход: editor-only архитектура, документация на двух языках, открытые репозитории и обратная совместимость там, где она не превращается в хрупкость. Если инструмент меняет файлы, результат должен быть понятным и проверяемым.' : 'Unity LTS is the main target. The preferred approach is editor-only architecture, bilingual documentation, open repositories, and backwards compatibility where it stays maintainable. If a workflow touches files, the result should be obvious and reviewable.'}</p></section></section>
-  </main>${siteFooter(language)}<script src="/site.js" defer></script></body></html>`, renderOptions);
+  </main>${siteFooter(language, renderOptions)}<script src="/site.js" defer></script></body></html>`, renderOptions);
 }
 
 function youtubeId(url) {
@@ -295,12 +320,13 @@ export function renderPluginPage(pluginRecord, downloads, language, renderOption
   const features = plugin.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('');
   const actions = [actionLink(plugin.releaseUrl, ui.releases, 'download-button'), plugin.documentationAvailable ? actionLink(`/${language}/docs/${plugin.slug}/`, ui.documentation, 'secondary-button', false) : '', actionLink(plugin.repositoryUrl, ui.source), actionLink(plugin.assetStoreUrl, ui.assetStore)].join('');
   const count = formatCount(downloads, language);
+  const supportUrl = options(renderOptions).socials.boosty;
   return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head>${pageHead({ language, pathname, alternatePath, title, description: plugin.subtitle, image: plugin.cover, renderOptions })}</head><body>
-  ${siteHeader(language, { active: 'plugins', slug: plugin.slug })}
+  ${siteHeader(language, { active: 'plugins', slug: plugin.slug }, renderOptions)}
   <main class="shell plugin-page"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/${language}/">QuartzLab</a><span>/</span><a href="/${language}/#plugins">${ui.plugins}</a><span>/</span><span aria-current="page">${escapeHtml(plugin.name)}</span></nav>
     <section class="plugin-hero"><div class="plugin-gallery">${pluginMedia(plugin, language)}</div><aside class="plugin-summary"><span class="detail-category">${escapeHtml(plugin.categoryLabel)}</span><h1>${escapeHtml(plugin.name)}</h1><p class="plugin-lead">${escapeHtml(plugin.subtitle)}</p><div class="detail-meta"><div class="meta-row"><span>${ui.version}</span><strong>${escapeHtml(plugin.version)}</strong></div><div class="meta-row"><span>${ui.minimumUnity}</span><strong>${escapeHtml(plugin.unityVersion)}</strong></div><div class="meta-row"><span>${ui.license}</span><strong>${escapeHtml(plugin.license)}</strong></div><div class="meta-row"><span>${ui.githubDownloads}</span><strong>↓ ${count}</strong></div><div class="meta-row"><span>${language === 'ru' ? 'Дата релиза' : 'Release date'}</span><strong><time datetime="${escapeHtml(plugin.updatedAt)}">${escapeHtml(plugin.updatedAt)}</time></strong></div></div><div class="plugin-actions">${actions}</div></aside></section>
-    <section class="plugin-content"><div class="content-main"><section><h2>${ui.aboutPlugin}</h2><p>${escapeHtml(plugin.description)}</p></section><section><h2>${ui.features}</h2><ul class="feature-list">${features}</ul></section><section><h2>${ui.installation}</h2><p>${escapeHtml(ui.installText)}</p></section>${plugin.documentationAvailable ? `<section class="docs-callout"><h2>${ui.documentation}</h2><p>${language === 'ru' ? 'Полная веб-документация синхронизируется с папкой Documentation~ последнего опубликованного релиза.' : 'The complete web documentation is synchronized from the Documentation~ folder of the latest published release.'}</p><a href="/${language}/docs/${plugin.slug}/">${ui.documentation} →</a></section>` : ''}</div><aside class="detail-side"><div class="detail-side-note"><h3>${ui.freeNote}</h3><p>${ui.freeNoteText}</p><a href="${BOOSTY_URL}" target="_blank" rel="noopener noreferrer">${ui.supportProject} →</a></div></aside></section>
-  </main>${siteFooter(language)}<script src="/site.js" defer></script><script src="/plugin-gallery.js" defer></script></body></html>`, renderOptions);
+    <section class="plugin-content"><div class="content-main"><section><h2>${ui.aboutPlugin}</h2><p>${escapeHtml(plugin.description)}</p></section><section><h2>${ui.features}</h2><ul class="feature-list">${features}</ul></section><section><h2>${ui.installation}</h2><p>${escapeHtml(ui.installText)}</p></section>${plugin.documentationAvailable ? `<section class="docs-callout"><h2>${ui.documentation}</h2><p>${language === 'ru' ? 'Полная веб-документация синхронизируется с папкой Documentation~ последнего опубликованного релиза.' : 'The complete web documentation is synchronized from the Documentation~ folder of the latest published release.'}</p><a href="/${language}/docs/${plugin.slug}/">${ui.documentation} →</a></section>` : ''}</div><aside class="detail-side"><div class="detail-side-note"><h3>${ui.freeNote}</h3><p>${ui.freeNoteText}</p>${supportUrl ? `<a href="${escapeHtml(supportUrl)}" target="_blank" rel="noopener noreferrer">${ui.supportProject} →</a>` : ''}</div></aside></section>
+  </main>${siteFooter(language, renderOptions)}<script src="/site.js" defer></script><script src="/plugin-gallery.js" defer></script></body></html>`, renderOptions);
 }
 
 function rewriteDocumentationAssetUrls(html, language, slug) {
@@ -325,7 +351,7 @@ export function renderDocumentationPage(pluginRecord, language, sourceHtml, rend
   const alternatePath = `/${language === 'en' ? 'ru' : 'en'}/docs/${plugin.slug}/`;
   const title = language === 'ru' ? `${plugin.name} — документация QuartzLab` : `${plugin.name} Documentation — QuartzLab`;
   const description = language === 'ru' ? `Документация ${plugin.name}: ${plugin.subtitle}` : `${plugin.name} documentation: ${plugin.subtitle}`;
-  const structuredData = jsonLd({ title, description, pathname, siteOrigin: opts.siteOrigin });
+  const structuredData = jsonLd({ title, description, pathname, siteOrigin: opts.siteOrigin, brandName: opts.brand.name });
   let output = String(sourceHtml)
     .replace(/\bclass\s*=\s*(["'])([^"']*\bbrand\b[^"']*)\1/gi, (_match, quote, classes) => `class=${quote}${classes.replace(/\bbrand\b/g, 'documentation-brand')}${quote}`)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`)
@@ -335,24 +361,24 @@ export function renderDocumentationPage(pluginRecord, language, sourceHtml, rend
     .replace(/<meta\s+name=["']twitter:[^>]+>\s*/gi, '')
     .replace('<script src="/theme.js"></script>', themeInitMarkup());
   output = rewriteDocumentationAssetUrls(output, language, plugin.slug);
-  const additions = `${securityMeta([THEME_INIT_SCRIPT, structuredData])}\n  ${seoMarkup({ language, pathname, alternatePath, title, description, siteOrigin: opts.siteOrigin })}\n  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">\n  <link rel="stylesheet" href="/styles.css">\n  <script type="application/ld+json">${structuredData}</script>`;
+  const additions = `${securityMeta([THEME_INIT_SCRIPT, structuredData])}\n  ${seoMarkup({ language, pathname, alternatePath, title, description, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}\n  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">\n  <link rel="stylesheet" href="/styles.css">\n  <script type="application/ld+json">${structuredData}</script>`;
   output = output.replace('</head>', `  ${additions}\n</head>`);
   output = output.replace(/<html\b([^>]*)>/i, (_match, attrs) => `<html${attrs} data-site-base-path="${escapeHtml(opts.basePath)}">`);
   output = addBodyClass(output, 'web-documentation-page');
-  output = output.replace(/<body\b([^>]*)>/i, match => `${match}\n  ${siteHeader(language, { active: 'docs', slug: plugin.slug })}`);
-  output = output.replace('</body>', `  ${siteFooter(language)}\n  <script src="/site.js" defer></script>\n</body>`);
+  output = output.replace(/<body\b([^>]*)>/i, match => `${match}\n  ${siteHeader(language, { active: 'docs', slug: plugin.slug }, renderOptions)}`);
+  output = output.replace('</body>', `  ${siteFooter(language, renderOptions)}\n  <script src="/site.js" defer></script>\n</body>`);
   return finalize(output, renderOptions);
 }
 
 export function renderRootPage(renderOptions = {}) {
   const opts = options(renderOptions);
-  return finalize(`<!doctype html><html lang="en" data-site-base-path="${escapeHtml(opts.basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex"><title>QuartzLab</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><script src="/language-redirect.js"></script><noscript><meta http-equiv="refresh" content="0;url=${opts.basePath === '/' ? '' : opts.basePath}/en/"></noscript></head><body><p><a href="/en/">English</a> · <a href="/ru/">Русский</a></p></body></html>`, renderOptions);
+  return finalize(`<!doctype html><html lang="en" data-site-base-path="${escapeHtml(opts.basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex"><title>${escapeHtml(opts.brand.name)}</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><script src="/language-redirect.js"></script><noscript><meta http-equiv="refresh" content="0;url=${opts.basePath === '/' ? '' : opts.basePath}/en/"></noscript></head><body><p><a href="/en/">English</a> · <a href="/ru/">Русский</a></p></body></html>`, renderOptions);
 }
 
 export function renderNotFoundPage(renderOptions = {}) {
   const title = 'Page not found — QuartzLab';
   const description = 'The requested QuartzLab page was not found.';
-  return finalize(`<!doctype html><html lang="en" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head>${pageHead({ language: 'en', pathname: '/404.html', alternatePath: '/404.html', title, description, renderOptions })}<meta name="robots" content="noindex"></head><body>${siteHeader('en')}<main class="shell plugin-page"><section class="project-section"><p class="eyebrow">404</p><h1>Page not found</h1><p>The address may be outdated. Return to the <a href="/en/#plugins">plugin catalog</a> or open the <a href="/ru/#plugins">Russian version</a>.</p></section></main>${siteFooter('en')}<script src="/site.js" defer></script></body></html>`, renderOptions);
+  return finalize(`<!doctype html><html lang="en" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head>${pageHead({ language: 'en', pathname: '/404.html', alternatePath: '/404.html', title, description, renderOptions })}<meta name="robots" content="noindex"></head><body>${siteHeader('en', {}, renderOptions)}<main class="shell plugin-page"><section class="project-section"><p class="eyebrow">404</p><h1>Page not found</h1><p>The address may be outdated. Return to the <a href="/en/#plugins">plugin catalog</a> or open the <a href="/ru/#plugins">Russian version</a>.</p></section></main>${siteFooter('en', renderOptions)}<script src="/site.js" defer></script></body></html>`, renderOptions);
 }
 
 function sitemapEntry(pathname, alternatePath, siteOrigin, lastModified = '') {
@@ -382,7 +408,8 @@ export function renderRobotsTxt(renderOptions = {}) {
 
 export function renderMaintenancePage(language = 'en', renderOptions = {}) {
   const isRu = language === 'ru';
-  return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>${isRu ? 'Технические работы — QuartzLab' : 'Maintenance — QuartzLab'}</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/maintenance.css"></head><body class="maintenance-page"><main><img src="/assets/quartzlab-mark.svg" alt=""><p class="eyebrow">QuartzLab</p><h1>${isRu ? 'Проводим технические работы' : 'We are performing maintenance'}</h1><p>${isRu ? 'Сайт временно закрыт на обновление. Пожалуйста, загляните немного позже.' : 'The site is temporarily closed while it is being updated. Please check back soon.'}</p><p class="maintenance-language"><a href="/ru/">Русский</a><span>·</span><a href="/en/">English</a></p></main></body></html>`, renderOptions);
+  const brandName = options(renderOptions).brand.name;
+  return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>${isRu ? 'Технические работы' : 'Maintenance'} — ${escapeHtml(brandName)}</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/maintenance.css"></head><body class="maintenance-page"><main><img src="/assets/quartzlab-mark.svg" alt=""><p class="eyebrow">${escapeHtml(brandName)}</p><h1>${isRu ? 'Проводим технические работы' : 'We are performing maintenance'}</h1><p>${isRu ? 'Сайт временно закрыт на обновление. Пожалуйста, загляните немного позже.' : 'The site is temporarily closed while it is being updated. Please check back soon.'}</p><p class="maintenance-language"><a href="/ru/">Русский</a><span>·</span><a href="/en/">English</a></p></main></body></html>`, renderOptions);
 }
 
-export const siteOrigin = DEFAULT_SITE_ORIGIN;
+export const siteOrigin = DEFAULT_SITE_CONFIG.brand.origin;

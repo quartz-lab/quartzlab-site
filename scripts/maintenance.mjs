@@ -12,6 +12,7 @@ if (!['on', 'off', 'status'].includes(command)) {
     let config = await loadSiteConfig();
     if (command !== 'status') {
       config = await writeSiteConfig({
+        ...config,
         maintenance: { enabled: command === 'on' },
       });
     }

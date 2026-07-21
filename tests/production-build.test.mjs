@@ -30,6 +30,7 @@ test('production build is rooted at quartzlab.ru and contains no project Pages p
         ...process.env,
         SITE_ORIGIN: 'https://quartzlab.ru',
         SITE_BASE_PATH: '/',
+        SITE_MAINTENANCE: 'false',
       },
     });
     assert.equal(result.siteOrigin, 'https://quartzlab.ru');
@@ -59,5 +60,6 @@ test('GitHub Pages workflow fixes the custom-domain production base path to root
   const workflow = await readFile(path.join(ROOT, '.github', 'workflows', 'pages.yml'), 'utf8');
   assert.match(workflow, /SITE_ORIGIN:\s*https:\/\/quartzlab\.ru/);
   assert.match(workflow, /SITE_BASE_PATH:\s*\//);
+  assert.match(workflow, /SITE_MAINTENANCE:\s*\$\{\{ vars\.SITE_MAINTENANCE \|\| 'false' \}\}/);
   assert.doesNotMatch(workflow, /steps\.pages\.outputs\.base_path/);
 });

@@ -36,9 +36,9 @@ export function canonicalUrl(pathname, siteOrigin = DEFAULT_SITE_ORIGIN) {
   return `${normalizeSiteOrigin(siteOrigin)}${String(pathname).startsWith('/') ? pathname : `/${pathname}`}`;
 }
 
-export function buildOptions(environment = process.env) {
+export function buildOptions(environment = process.env, defaults = {}) {
   return {
-    siteOrigin: normalizeSiteOrigin(environment.SITE_ORIGIN || DEFAULT_SITE_ORIGIN),
+    siteOrigin: normalizeSiteOrigin(environment.SITE_ORIGIN || defaults.siteOrigin || DEFAULT_SITE_ORIGIN),
     basePath: normalizeBasePath(environment.SITE_BASE_PATH || DEFAULT_SITE_BASE_PATH),
   };
 }
