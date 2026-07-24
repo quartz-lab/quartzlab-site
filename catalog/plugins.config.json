@@ -37,7 +37,7 @@
         "src": "/assets/plugins/clipswitch/screenshot-settings.png",
         "alt": {
           "en": "ClipSwitch audio settings window",
-          "ru": "Окно настроек аудио ClipSwitch"
+          "ru": "Окно настроек ClipSwitch"
         }
       }
     ],
@@ -52,9 +52,9 @@
         "subtitle": "Replace, compare, and process Unity audio assets without breaking references.",
         "description": "ClipSwitch is a compact Unity Editor workbench for previewing, replacing, comparing, and batch-processing AudioClips while preserving GUIDs and existing project references.",
         "features": [
-          "Waveform previews with instant playback from any position",
+          "Waveform previews with instant playback from any point",
           "Safe file replacement that keeps GUIDs and scene or prefab references intact",
-          "Automatic history snapshots before destructive operations",
+          "Change history with the ability to revert at any time",
           "Batch clip selection and side-by-side comparison workflow",
           "Built-in processing for trim, gain, normalize, reverse, fade, and pitch or speed tasks"
         ]
@@ -63,9 +63,9 @@
         "subtitle": "Замена, сравнение и обработка аудиоассетов Unity без потери ссылок.",
         "description": "ClipSwitch — компактный рабочий плагин для Unity Editor, который позволяет прослушивать, заменять, сравнивать и пакетно обрабатывать AudioClip с сохранением GUID и существующих ссылок проекта.",
         "features": [
-          "Waveform-превью и мгновенное прослушивание с любой позиции",
+          "Waveform-превью и мгновенное прослушивание с любого момента",
           "Безопасная замена файлов с сохранением GUID и ссылок в сценах и префабах",
-          "Автоматические снимки истории перед любыми разрушающими действиями",
+          "История изменений с возможностью возврата в любой момент",
           "Пакетный выбор клипов и удобное сравнение результатов",
           "Встроенная обработка trim, gain, normalize, reverse, fade и pitch или speed"
         ]

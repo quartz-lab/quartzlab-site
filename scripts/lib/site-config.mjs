@@ -13,7 +13,7 @@ export const DEFAULT_SITE_CONFIG = Object.freeze({
   socials: Object.freeze({
     github: 'https://github.com/quartz-lab',
     youtube: 'https://www.youtube.com/@quartz-lab',
-    telegram: null,
+    telegram: 'https://t.me/svetakpop1337',
     boosty: 'https://boosty.to/quartzlab',
   }),
   maintenance: Object.freeze({ enabled: false }),
