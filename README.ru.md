@@ -1,7 +1,7 @@
 [English](README.md) · [Русский](README.ru.md)
 
 <p align="center">
-  <img src="site/assets/quartzlab-mark.svg" width="88" height="88" alt="Логотип QuartzLab">
+  <img src="site/assets/favicon.svg" width="88" height="88" alt="Логотип QuartzLab">
 </p>
 
 # Сайт QuartzLab

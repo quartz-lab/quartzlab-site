@@ -9,6 +9,7 @@ import { buildSite } from '../scripts/build-site.mjs';
 import { escapeHtml, renderAboutPage, renderHomePage, renderPluginPage, siteOrigin, THEME_INIT_SCRIPT } from '../scripts/lib/site-render.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
+const LEGACY_ICON_PATTERN = new RegExp(['quartzlab', 'mark\\.svg'].join('-'), 'i');
 const siteConfig = JSON.parse(await readFile(path.join(ROOT, 'site.config.json'), 'utf8'));
 let OUTPUT = path.join(ROOT, '_site');
 let temporaryRoot;
@@ -43,6 +44,10 @@ async function listFiles(directory) {
 }
 
 test('normal clean build contains static RU/EN catalog, plugin, docs, 404, and SEO routes', async () => {
+  const descriptions = {
+    en: 'Free QuartzLab plugins and tools for Unity Editor with documentation, screenshots, and downloads of the latest releases.',
+    ru: 'Бесплатные плагины и инструменты QuartzLab для Unity Editor: описание, документация, скриншоты и загрузка последних версий.',
+  };
   for (const language of ['en', 'ru']) {
     const home = await readOutput(language, 'index.html');
     const plugin = await readOutput(language, 'plugins', 'clipswitch', 'index.html');
@@ -53,6 +58,9 @@ test('normal clean build contains static RU/EN catalog, plugin, docs, 404, and S
     assert.match(plugin, new RegExp(`canonical" href="https://quartzlab\\.ru/${language}/plugins/clipswitch/`));
     assert.match(docs, /class="site-header"/);
     assert.doesNotMatch(docs, /class="topbar"|offline documentation|офлайн-документация/i);
+    assert.ok(home.includes(`<meta name="description" content="${descriptions[language]}">`));
+    assert.ok(home.includes(`<meta property="og:description" content="${descriptions[language]}">`));
+    assert.ok(home.includes(`<meta name="twitter:description" content="${descriptions[language]}">`));
   }
   await access(path.join(OUTPUT, '404.html'));
   assert.equal(siteOrigin, 'https://quartzlab.ru');
@@ -83,6 +91,17 @@ test('normal sitemap exposes the root as x-default and robots allows the whole s
   assert.match(sitemap, /hreflang="x-default" href="https:\/\/quartzlab\.ru\/"/);
   assert.match(robots, /^Allow:\s*\/$/m);
   assert.doesNotMatch(robots, /^Disallow:\s*\/$/m);
+});
+
+test('all generated pages use the root favicon and contain no legacy icon references', async () => {
+  await access(path.join(OUTPUT, 'favicon.svg'));
+  const files = await listFiles(OUTPUT);
+  for (const file of files.filter(file => path.extname(file) === '.html')) {
+    assert.match(await readFile(file, 'utf8'), /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/);
+  }
+  for (const file of files.filter(file => ['.html', '.js', '.json', '.txt', '.xml'].includes(path.extname(file)))) {
+    assert.doesNotMatch(await readFile(file, 'utf8'), LEGACY_ICON_PATTERN);
+  }
 });
 
 test('output catalog scripts never fetch JSON and Boosty links are direct', async () => {
@@ -132,6 +151,7 @@ test('renderer supports project Pages base path while canonical stays on quartzl
     assert.match(html, /(?:href|src)="\/quartzlab-site\//);
     assert.doesNotMatch(html, /(?:href|src)="\/assets\//);
     assert.match(html, /canonical" href="https:\/\/quartzlab\.ru\/en\//);
+    assert.match(html, /<link rel="icon" href="\/quartzlab-site\/favicon\.svg" type="image\/svg\+xml">/);
     assert.doesNotMatch(html, /quartzlab\.ru\/quartzlab-site/);
   }
 });

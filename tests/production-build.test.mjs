@@ -32,7 +32,9 @@ test('production build is rooted at quartzlab.ru and contains no project Pages p
 
   const rootHtml = await readFile(path.join(OUTPUT, 'index.html'), 'utf8');
   const notFoundHtml = await readFile(path.join(OUTPUT, '404.html'), 'utf8');
+  await readFile(path.join(OUTPUT, 'favicon.svg'));
   assert.match(rootHtml, /<link rel="canonical" href="https:\/\/quartzlab\.ru\/">/);
+  assert.match(rootHtml, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/);
   assert.match(rootHtml, /href="\/ru\/"/);
   assert.match(rootHtml, /href="\/en\/"/);
   assert.doesNotMatch(rootHtml, /href="\/quartzlab-site\//);

@@ -14,6 +14,7 @@ import { renderMaintenancePage } from '../scripts/lib/site-render.mjs';
 import { validateSite } from '../scripts/validate-site.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
+const LEGACY_ICON_PATTERN = new RegExp(['quartzlab', 'mark\\.svg'].join('-'), 'i');
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -68,6 +69,7 @@ test('maintenance page is localized, index-safe, script-free, and supports a Pag
     assert.doesNotMatch(html, /503|Retry-After/i);
     assert.match(html, /maintenance\.css/);
   }
+  assert.match(ru, /<link rel="icon" href="\/quartzlab-site\/favicon\.svg" type="image\/svg\+xml">/);
   assert.match(ru, /href="\/quartzlab-site\/ru\/"/);
   assert.match(ru, /href="\/quartzlab-site\/en\/"/);
 });
@@ -92,7 +94,9 @@ test('maintenance integration build validates all routes and leaves source confi
 
     const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
     const robots = await readFile(path.join(outputPath, 'robots.txt'), 'utf8');
+    await readFile(path.join(outputPath, 'favicon.svg'));
     assert.match(rootHtml, /<meta name="robots" content="noindex,nofollow">/);
+    assert.match(rootHtml, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/);
     assert.match(robots, /^Disallow:\s*\/$/m);
 
     const manifest = JSON.parse(await readFile(path.join(outputPath, 'asset-manifest.json'), 'utf8'));
@@ -108,7 +112,9 @@ test('maintenance integration build validates all routes and leaves source confi
     for (const route of routes) {
       const html = await readFile(path.join(outputPath, ...route.split('/')), 'utf8');
       assert.match(html, /\/hashed-assets\/maintenance\.[0-9a-f]{12}\.css/);
+      assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/);
       assert.doesNotMatch(html, /<script\b|language-redirect\.js/i);
+      assert.doesNotMatch(html, LEGACY_ICON_PATTERN);
     }
     const outputFiles = await listFiles(outputPath);
     assert.equal(outputFiles.some(file => path.extname(file) === '.js'), false);

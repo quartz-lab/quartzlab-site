@@ -99,6 +99,7 @@ export async function buildSite({
   await rm(outputPath, { recursive: true, force: true });
   await mkdir(outputPath, { recursive: true });
   await cp(path.join(SITE_SOURCE, 'assets'), path.join(outputPath, 'assets'), { recursive: true });
+  await cp(path.join(SITE_SOURCE, 'assets', 'favicon.svg'), path.join(outputPath, 'favicon.svg'));
 
   const result = maintenance
     ? await renderMaintenanceSite(outputPath, renderOptions)

@@ -240,6 +240,10 @@ export function transformDocumentationHtml(html, routeLanguage) {
     output = output.replace('</head>', '  <link rel="stylesheet" href="/docs-theme.css">\n</head>');
   }
 
+  output = output
+    .replace(/<link\s+rel=["']icon["'][^>]*>\s*/gi, '')
+    .replace('</head>', '  <link rel="icon" href="/favicon.svg" type="image/svg+xml">\n</head>');
+
   output = output.replace(
     '</head>',
     `  <script src="./${GENERATED_DOC_ROUTE_SCRIPT}"></script>\n</head>`,

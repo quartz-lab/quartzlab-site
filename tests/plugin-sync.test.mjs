@@ -124,6 +124,7 @@ test('transformDocumentationHtml extracts inline assets and injects local helper
   assert.match(html, /<link rel="stylesheet" href="\.\/__doc-inline-style-1\.css">/i);
   assert.match(html, /<script src="\.\/__doc-inline-script-1\.js"><\/script>/i);
   assert.match(html, /<link rel="stylesheet" href="\/docs-theme\.css">/i);
+  assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml">/i);
   assert.match(html, /<script src="\/theme\.js"><\/script>/i);
   assert.match(html, /<script src="\.\/__route-language\.js"><\/script>/i);
   assert.doesNotMatch(html, /<style\b/i);

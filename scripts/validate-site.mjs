@@ -12,6 +12,7 @@ const CONFLICT_MARKER = /^(?:<<<<<<<|=======|>>>>>>>)(?:\s|$)/m;
 const LEGACY_TERMS = ['cloud' + 'flare', 'wrang' + 'ler', 'SUPPORT_' + 'ANALYTICS', 'Pages ' + 'Functions', '/go/' + 'support'];
 const HASHED_NAME = /\.([0-9a-f]{12})\.(css|js)$/;
 const FORBIDDEN_PRODUCTION_PREFIX = '/quartzlab-site/';
+const LEGACY_ICON_NAME = ['quartzlab', 'mark.svg'].join('-');
 
 async function listFiles(directory, ignored = new Set()) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -174,7 +175,21 @@ export async function validateSite({
   });
 
   await check('required static entry files exist', async () => {
-    for (const relative of ['index.html', '404.html', 'robots.txt', 'sitemap.xml']) await expectFile(path.join(outputPath, relative), relative);
+    for (const relative of ['index.html', '404.html', 'favicon.svg', 'robots.txt', 'sitemap.xml']) await expectFile(path.join(outputPath, relative), relative);
+  });
+
+  await check('all pages use the root favicon and contain no legacy icon references', async () => {
+    const faviconHref = `${basePath === '/' ? '' : basePath}/favicon.svg`;
+    const faviconMarkup = `<link rel="icon" href="${faviconHref}" type="image/svg+xml">`;
+    for (const htmlFile of htmlFiles) {
+      const html = await readFile(htmlFile, 'utf8');
+      if (!html.includes(faviconMarkup)) throw new Error(`${path.relative(outputPath, htmlFile)} does not use ${faviconHref}`);
+    }
+    for (const file of files.filter(file => TEXT_EXTENSIONS.has(path.extname(file).toLowerCase()))) {
+      if ((await readFile(file, 'utf8')).toLowerCase().includes(LEGACY_ICON_NAME)) {
+        throw new Error(`legacy icon reference in ${path.relative(outputPath, file)}`);
+      }
+    }
   });
 
   await check('production root is indexable, localized, and uses root assets', async () => {

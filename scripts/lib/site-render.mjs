@@ -65,7 +65,7 @@ function sha256Base64(value) {
   return createHash('sha256').update(value, 'utf8').digest('base64');
 }
 
-function jsonLd({ title, description, pathname, image = '/assets/quartzlab-mark.svg', siteOrigin, brandName }) {
+function jsonLd({ title, description, pathname, image = '/favicon.svg', siteOrigin, brandName }) {
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
@@ -93,7 +93,7 @@ function themeInitMarkup() {
   return `<script>${THEME_INIT_SCRIPT}</script>`;
 }
 
-function seoMarkup({ language, pathname, alternatePath, title, description, image = '/assets/quartzlab-mark.svg', type = 'website', siteOrigin, brandName }) {
+function seoMarkup({ language, pathname, alternatePath, title, description, image = '/favicon.svg', type = 'website', siteOrigin, brandName }) {
   const canonical = canonicalUrl(pathname, siteOrigin);
   const alternateLanguage = language === 'en' ? 'ru' : 'en';
   const defaultPath = language === 'en' ? pathname : alternatePath;
@@ -108,10 +108,11 @@ function seoMarkup({ language, pathname, alternatePath, title, description, imag
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
   <meta property="og:image" content="${escapeHtml(canonicalUrl(image, siteOrigin))}">
-  <meta name="twitter:card" content="summary_large_image">`;
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:description" content="${escapeHtml(description)}">`;
 }
 
-function rootSeoMarkup({ title, description, image = '/assets/quartzlab-mark.svg', siteOrigin, brandName }) {
+function rootSeoMarkup({ title, description, image = '/favicon.svg', siteOrigin, brandName }) {
   const canonical = canonicalUrl('/', siteOrigin);
   return `<link rel="canonical" href="${escapeHtml(canonical)}">
   <link rel="alternate" hreflang="ru" href="${escapeHtml(canonicalUrl('/ru/', siteOrigin))}">
@@ -125,7 +126,8 @@ function rootSeoMarkup({ title, description, image = '/assets/quartzlab-mark.svg
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
   <meta property="og:image" content="${escapeHtml(canonicalUrl(image, siteOrigin))}">
-  <meta name="twitter:card" content="summary_large_image">`;
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:description" content="${escapeHtml(description)}">`;
 }
 
 function pageHead({ language, pathname, alternatePath, title, description, image, type, renderOptions }) {
@@ -137,7 +139,7 @@ function pageHead({ language, pathname, alternatePath, title, description, image
   <meta name="description" content="${escapeHtml(description)}">
   <title>${escapeHtml(title)}</title>
   ${seoMarkup({ language, pathname, alternatePath, title, description, image, type, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}
-  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   ${themeInitMarkup()}
   <link rel="stylesheet" href="/styles.css">
   <script type="application/ld+json">${structuredData}</script>`;
@@ -183,7 +185,7 @@ export function siteHeader(language, { active = '', slug = '' } = {}, renderOpti
         : lang => `/${lang}/`;
   return `<header class="site-header">
     <div class="shell header-inner">
-      <a class="brand" href="/${language}/" aria-label="${escapeHtml(opts.brand.name)} ${language === 'ru' ? '— главная' : 'home'}"><img src="/assets/quartzlab-mark.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
+      <a class="brand" href="/${language}/" aria-label="${escapeHtml(opts.brand.name)} ${language === 'ru' ? '— главная' : 'home'}"><img src="/favicon.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
       <nav class="main-nav" aria-label="${escapeHtml(ui.navLabel)}">
         <a${active === 'plugins' ? ' class="active" aria-current="page"' : ''} href="/${language}/#plugins">${ui.plugins}</a>
         <a${active === 'about' ? ' class="active" aria-current="page"' : ''} href="/${language}/about/">${ui.about}</a>
@@ -206,7 +208,7 @@ export function siteFooter(language, renderOptions = {}) {
   return `<footer class="site-footer">
     <div class="shell footer-main">
       <div>
-        <a class="brand footer-brand" href="/${language}/"><img src="/assets/quartzlab-mark.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
+        <a class="brand footer-brand" href="/${language}/"><img src="/favicon.svg" alt=""><span>${brandWordmark(opts.brand.name)}</span></a>
         <p>${ui.footerDescription}</p>
         <nav class="footer-links" aria-label="${language === 'ru' ? 'Навигация в подвале' : 'Footer navigation'}"><a href="/${language}/#plugins">${ui.footerCatalogLink}</a><a href="/${language}/about/">${ui.footerAboutLink}</a></nav>
       </div>
@@ -235,7 +237,9 @@ export function renderHomePage(pluginRecords, downloads, language, renderOptions
   const pathname = `/${language}/`;
   const alternatePath = `/${isRu ? 'en' : 'ru'}/`;
   const title = isRu ? 'QuartzLab — плагины для Unity Editor' : 'QuartzLab — Unity Editor plugins';
-  const description = isRu ? 'Компактные плагины QuartzLab для Unity Editor с данными из последних опубликованных GitHub-релизов.' : 'Focused Unity Editor plugins by QuartzLab, synced from published GitHub releases.';
+  const description = isRu
+    ? 'Бесплатные плагины и инструменты QuartzLab для Unity Editor: описание, документация, скриншоты и загрузка последних версий.'
+    : 'Free QuartzLab plugins and tools for Unity Editor with documentation, screenshots, and downloads of the latest releases.';
   const categories = [...new Set(pluginRecords.map(plugin => plugin.category[language]))].sort((a, b) => a.localeCompare(b, language));
   const cards = pluginRecords.map(plugin => catalogCard(plugin, downloads[plugin.slug], language)).join('\n');
   const countLabel = isRu
@@ -251,7 +255,7 @@ export function renderHomePage(pluginRecords, downloads, language, renderOptions
 <body>
   ${siteHeader(language, { active: 'plugins' }, renderOptions)}
   <main>
-    <section class="intro"><div class="hero-grid" aria-hidden="true"></div><div class="shell intro-layout"><div class="intro-inner"><p class="eyebrow">Unity Editor Tools</p><h1>${isRu ? 'Меньше рутины.<br>Больше времени на игру.' : 'Less busywork.<br>More time for your game.'}</h1><p class="intro-copy">${isRu ? 'Небольшие бесплатные плагины QuartzLab для задач, которые Unity заставляет делать слишком долго.' : 'Small, free QuartzLab plugins for the tasks Unity makes take too long.'}</p></div><div class="hero-mark" aria-hidden="true"><div class="mark-orbit"></div><img src="/assets/quartzlab-mark.svg" alt=""></div></div></section>
+    <section class="intro"><div class="hero-grid" aria-hidden="true"></div><div class="shell intro-layout"><div class="intro-inner"><p class="eyebrow">Unity Editor Tools</p><h1>${isRu ? 'Меньше рутины.<br>Больше времени на игру.' : 'Less busywork.<br>More time for your game.'}</h1><p class="intro-copy">${isRu ? 'Небольшие бесплатные плагины QuartzLab для задач, которые Unity заставляет делать слишком долго.' : 'Small, free QuartzLab plugins for the tasks Unity makes take too long.'}</p></div><div class="hero-mark" aria-hidden="true"><div class="mark-orbit"></div><img src="/favicon.svg" alt=""></div></div></section>
     <section class="catalog" id="plugins"><div class="shell catalog-shell">
       <div class="catalog-heading"><div><h2>${isRu ? 'Все плагины' : 'All plugins'}</h2><p id="catalogCount">${countLabel}</p></div><label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg><input id="searchInput" type="search" placeholder="${isRu ? 'Поиск плагинов' : 'Search plugins'}" autocomplete="off"></label></div>
       <div class="catalog-layout"><aside class="filters" aria-label="${isRu ? 'Фильтры каталога' : 'Catalog filters'}"><div class="filter-section"><h3>${isRu ? 'Категория' : 'Category'}</h3><div id="categoryFilters" class="filter-list">${categoryControls}</div></div><div class="filter-section compact"><h3>${isRu ? 'Совместимость' : 'Compatibility'}</h3><label class="check-row"><input id="ltsOnly" type="checkbox"><span>Unity 2022.3+</span></label></div><button id="resetFilters" class="text-button" type="button" hidden>${isRu ? 'Сбросить фильтры' : 'Reset filters'}</button></aside>
@@ -374,11 +378,12 @@ export function renderDocumentationPage(pluginRecord, language, sourceHtml, rend
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`)
     .replace(/<meta\s+name=["']description["'][^>]*>/i, `<meta name="description" content="${escapeHtml(description)}">`)
     .replace(/<link\s+rel=["'](?:canonical|alternate)["'][^>]*>\s*/gi, '')
+    .replace(/<link\s+rel=["']icon["'][^>]*>\s*/gi, '')
     .replace(/<meta\s+property=["']og:[^>]+>\s*/gi, '')
     .replace(/<meta\s+name=["']twitter:[^>]+>\s*/gi, '')
     .replace('<script src="/theme.js"></script>', themeInitMarkup());
   output = rewriteDocumentationAssetUrls(output, language, plugin.slug);
-  const additions = `${securityMeta([THEME_INIT_SCRIPT, structuredData])}\n  ${seoMarkup({ language, pathname, alternatePath, title, description, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}\n  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">\n  <link rel="stylesheet" href="/styles.css">\n  <script type="application/ld+json">${structuredData}</script>`;
+  const additions = `${securityMeta([THEME_INIT_SCRIPT, structuredData])}\n  ${seoMarkup({ language, pathname, alternatePath, title, description, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}\n  <link rel="icon" href="/favicon.svg" type="image/svg+xml">\n  <link rel="stylesheet" href="/styles.css">\n  <script type="application/ld+json">${structuredData}</script>`;
   output = output.replace('</head>', `  ${additions}\n</head>`);
   output = output.replace(/<html\b([^>]*)>/i, (_match, attrs) => `<html${attrs} data-site-base-path="${escapeHtml(opts.basePath)}">`);
   output = addBodyClass(output, 'web-documentation-page');
@@ -408,7 +413,7 @@ export function renderRootPage(renderOptions = {}) {
   <meta name="description" content="${escapeHtml(description)}">
   <title>${escapeHtml(title)}</title>
   ${rootSeoMarkup({ title, description, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}
-  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   ${themeInitMarkup()}
   <link rel="stylesheet" href="/styles.css">
   <script type="application/ld+json">${structuredData}</script>
@@ -482,7 +487,7 @@ export function renderRobotsTxt(renderOptions = {}) {
 export function renderMaintenancePage(language = 'en', renderOptions = {}) {
   const isRu = language === 'ru';
   const brandName = options(renderOptions).brand.name;
-  return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>${isRu ? 'Технические работы' : 'Maintenance'} — ${escapeHtml(brandName)}</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/maintenance.css"></head><body class="maintenance-page"><main><img src="/assets/quartzlab-mark.svg" alt=""><p class="eyebrow">${escapeHtml(brandName)}</p><h1>${isRu ? 'Проводим технические работы' : 'We are performing maintenance'}</h1><p>${isRu ? 'Сайт временно закрыт на обновление. Пожалуйста, загляните немного позже.' : 'The site is temporarily closed while it is being updated. Please check back soon.'}</p><p class="maintenance-language"><a href="/ru/">Русский</a><span>·</span><a href="/en/">English</a></p></main></body></html>`, renderOptions);
+  return finalize(`<!doctype html><html lang="${language}" data-site-base-path="${escapeHtml(options(renderOptions).basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>${isRu ? 'Технические работы' : 'Maintenance'} — ${escapeHtml(brandName)}</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/maintenance.css"></head><body class="maintenance-page"><main><img src="/favicon.svg" alt=""><p class="eyebrow">${escapeHtml(brandName)}</p><h1>${isRu ? 'Проводим технические работы' : 'We are performing maintenance'}</h1><p>${isRu ? 'Сайт временно закрыт на обновление. Пожалуйста, загляните немного позже.' : 'The site is temporarily closed while it is being updated. Please check back soon.'}</p><p class="maintenance-language"><a href="/ru/">Русский</a><span>·</span><a href="/en/">English</a></p></main></body></html>`, renderOptions);
 }
 
 export const siteOrigin = DEFAULT_SITE_CONFIG.brand.origin;
