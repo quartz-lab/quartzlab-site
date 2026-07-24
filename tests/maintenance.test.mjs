@@ -90,6 +90,11 @@ test('maintenance integration build validates all routes and leaves source confi
     assert.equal(result.maintenance, true);
     await validateSite({ root: ROOT, outputPath, expectedBasePath: '/', maintenance: true, logger: { log() {} } });
 
+    const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
+    const robots = await readFile(path.join(outputPath, 'robots.txt'), 'utf8');
+    assert.match(rootHtml, /<meta name="robots" content="noindex,nofollow">/);
+    assert.match(robots, /^Disallow:\s*\/$/m);
+
     const manifest = JSON.parse(await readFile(path.join(outputPath, 'asset-manifest.json'), 'utf8'));
     assert.deepEqual(Object.keys(manifest.assets), ['/maintenance.css']);
     assert.match(manifest.assets['/maintenance.css'], /^\/hashed-assets\/maintenance\.[0-9a-f]{12}\.css$/);

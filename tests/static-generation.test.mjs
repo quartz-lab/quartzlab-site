@@ -59,6 +59,32 @@ test('normal clean build contains static RU/EN catalog, plugin, docs, 404, and S
   assert.doesNotMatch(await readOutput('sitemap.xml'), /quartzlab-site\.pages\.dev|plugin\.html/);
 });
 
+test('normal root is indexable, useful without JavaScript, and has complete language SEO metadata', async () => {
+  const root = await readOutput('index.html');
+  const robotsMeta = root.match(/<meta name="robots" content="([^"]+)">/i)?.[1];
+
+  assert.equal(robotsMeta, 'index,follow');
+  assert.doesNotMatch(robotsMeta, /\b(?:noindex|nofollow|none)\b/i);
+  assert.doesNotMatch(root, /http-equiv="refresh"/i);
+  assert.match(root, /href="\/ru\/"/);
+  assert.match(root, /href="\/en\/"/);
+  assert.match(root, /<main\b[\s\S]*<h1\b[\s\S]*href="\/en\/"[\s\S]*href="\/ru\/"/i);
+  assert.match(root, /<link rel="canonical" href="https:\/\/quartzlab\.ru\/">/);
+  assert.match(root, /<link rel="alternate" hreflang="ru" href="https:\/\/quartzlab\.ru\/ru\/">/);
+  assert.match(root, /<link rel="alternate" hreflang="en" href="https:\/\/quartzlab\.ru\/en\/">/);
+  assert.match(root, /<link rel="alternate" hreflang="x-default" href="https:\/\/quartzlab\.ru\/">/);
+});
+
+test('normal sitemap exposes the root as x-default and robots allows the whole site', async () => {
+  const sitemap = await readOutput('sitemap.xml');
+  const robots = await readOutput('robots.txt');
+
+  assert.match(sitemap, /<loc>https:\/\/quartzlab\.ru\/<\/loc>/);
+  assert.match(sitemap, /hreflang="x-default" href="https:\/\/quartzlab\.ru\/"/);
+  assert.match(robots, /^Allow:\s*\/$/m);
+  assert.doesNotMatch(robots, /^Disallow:\s*\/$/m);
+});
+
 test('output catalog scripts never fetch JSON and Boosty links are direct', async () => {
   const files = await listFiles(OUTPUT);
   for (const file of files.filter(file => ['.html', '.js'].includes(path.extname(file)))) {

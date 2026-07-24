@@ -111,6 +111,23 @@ function seoMarkup({ language, pathname, alternatePath, title, description, imag
   <meta name="twitter:card" content="summary_large_image">`;
 }
 
+function rootSeoMarkup({ title, description, image = '/assets/quartzlab-mark.svg', siteOrigin, brandName }) {
+  const canonical = canonicalUrl('/', siteOrigin);
+  return `<link rel="canonical" href="${escapeHtml(canonical)}">
+  <link rel="alternate" hreflang="ru" href="${escapeHtml(canonicalUrl('/ru/', siteOrigin))}">
+  <link rel="alternate" hreflang="en" href="${escapeHtml(canonicalUrl('/en/', siteOrigin))}">
+  <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="${escapeHtml(brandName)}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonical)}">
+  <meta property="og:image" content="${escapeHtml(canonicalUrl(image, siteOrigin))}">
+  <meta name="twitter:card" content="summary_large_image">`;
+}
+
 function pageHead({ language, pathname, alternatePath, title, description, image, type, renderOptions }) {
   const opts = options(renderOptions);
   const structuredData = jsonLd({ title, description, pathname, image, siteOrigin: opts.siteOrigin, brandName: opts.brand.name });
@@ -372,7 +389,59 @@ export function renderDocumentationPage(pluginRecord, language, sourceHtml, rend
 
 export function renderRootPage(renderOptions = {}) {
   const opts = options(renderOptions);
-  return finalize(`<!doctype html><html lang="en" data-site-base-path="${escapeHtml(opts.basePath)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${securityMeta()}<meta name="robots" content="noindex"><title>${escapeHtml(opts.brand.name)}</title><link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml"><script src="/language-redirect.js"></script><noscript><meta http-equiv="refresh" content="0;url=${opts.basePath === '/' ? '' : opts.basePath}/en/"></noscript></head><body><p><a href="/en/">English</a> · <a href="/ru/">Русский</a></p></body></html>`, renderOptions);
+  const title = `${opts.brand.name} — free Unity Editor tools`;
+  const description = 'Free open-source tools for Unity Editor. Choose the English or Russian QuartzLab catalog.';
+  const structuredData = jsonLd({
+    title,
+    description,
+    pathname: '/',
+    siteOrigin: opts.siteOrigin,
+    brandName: opts.brand.name,
+  });
+  return finalize(`<!doctype html>
+<html lang="en" data-site-base-path="${escapeHtml(opts.basePath)}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  ${securityMeta([THEME_INIT_SCRIPT, structuredData])}
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="${escapeHtml(description)}">
+  <title>${escapeHtml(title)}</title>
+  ${rootSeoMarkup({ title, description, siteOrigin: opts.siteOrigin, brandName: opts.brand.name })}
+  <link rel="icon" href="/assets/quartzlab-mark.svg" type="image/svg+xml">
+  ${themeInitMarkup()}
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">${structuredData}</script>
+</head>
+<body>
+  ${siteHeader('en', {}, renderOptions)}
+  <main class="shell project-page">
+    <section class="project-hero" aria-labelledby="root-title">
+      <p class="eyebrow">${escapeHtml(opts.brand.name)} · Unity Editor</p>
+      <h1 id="root-title">Free tools for a faster Unity workflow</h1>
+      <p class="project-copy">QuartzLab creates free, open-source Unity Editor plugins. Choose a language to open the complete catalog, documentation, and project information.</p>
+      <div class="project-social-row" aria-label="Choose language">
+        <a class="primary-link" href="/en/">Continue in English</a>
+        <a class="secondary-button" href="/ru/" lang="ru">Продолжить на русском</a>
+      </div>
+    </section>
+    <div class="project-flow">
+      <section class="project-section">
+        <h2>Unity tools in English</h2>
+        <p>Browse plugin features, releases, installation notes, and synchronized documentation in the English catalog. <a href="/en/">Open the English version →</a></p>
+      </section>
+      <section class="project-section" lang="ru">
+        <h2>Инструменты Unity на русском</h2>
+        <p>Откройте каталог плагинов, описания возможностей, инструкции по установке и актуальную документацию на русском языке. <a href="/ru/">Открыть русскую версию →</a></p>
+      </section>
+    </div>
+    <noscript><p class="project-copy">Automatic language selection requires JavaScript. Both language links above work without it.</p></noscript>
+  </main>
+  ${siteFooter('en', renderOptions)}
+  <script src="/language-redirect.js" defer></script>
+  <script src="/site.js" defer></script>
+</body>
+</html>`, renderOptions);
 }
 
 export function renderNotFoundPage(renderOptions = {}) {
@@ -388,9 +457,13 @@ function sitemapEntry(pathname, alternatePath, siteOrigin, lastModified = '') {
   return `  <url>\n    <loc>${escapeHtml(canonicalUrl(pathname, siteOrigin))}</loc>\n${lastModified ? `    <lastmod>${escapeHtml(lastModified)}</lastmod>\n` : ''}    <xhtml:link rel="alternate" hreflang="${language}" href="${escapeHtml(canonicalUrl(pathname, siteOrigin))}" />\n    <xhtml:link rel="alternate" hreflang="${alternateLanguage}" href="${escapeHtml(canonicalUrl(alternatePath, siteOrigin))}" />\n    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalUrl(defaultPath, siteOrigin))}" />\n  </url>`;
 }
 
+function rootSitemapEntry(siteOrigin) {
+  return `  <url>\n    <loc>${escapeHtml(canonicalUrl('/', siteOrigin))}</loc>\n    <xhtml:link rel="alternate" hreflang="ru" href="${escapeHtml(canonicalUrl('/ru/', siteOrigin))}" />\n    <xhtml:link rel="alternate" hreflang="en" href="${escapeHtml(canonicalUrl('/en/', siteOrigin))}" />\n    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalUrl('/', siteOrigin))}" />\n  </url>`;
+}
+
 export function renderSitemap(plugins, renderOptions = {}) {
   const { siteOrigin } = options(renderOptions);
-  const entries = [sitemapEntry('/en/', '/ru/', siteOrigin), sitemapEntry('/ru/', '/en/', siteOrigin), sitemapEntry('/en/about/', '/ru/about/', siteOrigin), sitemapEntry('/ru/about/', '/en/about/', siteOrigin)];
+  const entries = [rootSitemapEntry(siteOrigin), sitemapEntry('/en/', '/ru/', siteOrigin), sitemapEntry('/ru/', '/en/', siteOrigin), sitemapEntry('/en/about/', '/ru/about/', siteOrigin), sitemapEntry('/ru/about/', '/en/about/', siteOrigin)];
   for (const plugin of plugins) {
     entries.push(sitemapEntry(`/en/plugins/${plugin.slug}/`, `/ru/plugins/${plugin.slug}/`, siteOrigin, plugin.updatedAt));
     entries.push(sitemapEntry(`/ru/plugins/${plugin.slug}/`, `/en/plugins/${plugin.slug}/`, siteOrigin, plugin.updatedAt));

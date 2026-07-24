@@ -177,18 +177,38 @@ export async function validateSite({
     for (const relative of ['index.html', '404.html', 'robots.txt', 'sitemap.xml']) await expectFile(path.join(outputPath, relative), relative);
   });
 
-  await check('production root redirect and 404 use root assets', async () => {
+  await check('production root is indexable, localized, and uses root assets', async () => {
     if (maintenanceMode || basePath !== '/') return;
     const rootHtml = await readFile(path.join(outputPath, 'index.html'), 'utf8');
     const notFoundHtml = await readFile(path.join(outputPath, '404.html'), 'utf8');
+    const sitemap = await readFile(path.join(outputPath, 'sitemap.xml'), 'utf8');
+    const robots = await readFile(path.join(outputPath, 'robots.txt'), 'utf8');
     for (const route of ['/ru/', '/en/']) {
       if (!rootHtml.includes(`href="${route}"`)) throw new Error(`root index does not link to ${route}`);
     }
     if (!rootHtml.includes('data-site-base-path="/"')) throw new Error('root index does not declare the root base path');
+    const robotsDirective = rootHtml.match(/<meta\s+name=["']robots["']\s+content=["']([^"']+)/i)?.[1] || '';
+    if (!/\bindex\b/i.test(robotsDirective) || !/\bfollow\b/i.test(robotsDirective) || /\b(?:noindex|nofollow|none)\b/i.test(robotsDirective)) {
+      throw new Error(`root index has unsafe robots directives: ${robotsDirective || '(missing)'}`);
+    }
+    for (const markup of [
+      '<link rel="canonical" href="https://quartzlab.ru/">',
+      '<link rel="alternate" hreflang="ru" href="https://quartzlab.ru/ru/">',
+      '<link rel="alternate" hreflang="en" href="https://quartzlab.ru/en/">',
+      '<link rel="alternate" hreflang="x-default" href="https://quartzlab.ru/">',
+    ]) {
+      if (!rootHtml.includes(markup)) throw new Error(`root index is missing SEO markup: ${markup}`);
+    }
+    if (!sitemap.includes('<loc>https://quartzlab.ru/</loc>') || !sitemap.includes('hreflang="x-default" href="https://quartzlab.ru/"')) {
+      throw new Error('sitemap does not contain the root x-default URL');
+    }
+    if (!/^Allow:\s*\/$/m.test(robots) || /^Disallow:\s*\/$/m.test(robots)) throw new Error('production robots.txt does not allow root crawling');
     const redirectAsset = manifest.assets['/language-redirect.js'];
     const stylesAsset = manifest.assets['/styles.css'];
     const siteAsset = manifest.assets['/site.js'];
     if (!redirectAsset || !rootHtml.includes(`src="${redirectAsset}"`)) throw new Error('root language redirect is missing or not fingerprinted');
+    if (!stylesAsset || !rootHtml.includes(`href="${stylesAsset}"`)) throw new Error('root index does not use the fingerprinted site stylesheet');
+    if (!siteAsset || !rootHtml.includes(`src="${siteAsset}"`)) throw new Error('root index does not use the fingerprinted site script');
     if (!stylesAsset || !notFoundHtml.includes(`href="${stylesAsset}"`)) throw new Error('404.html does not use the fingerprinted site stylesheet');
     if (!siteAsset || !notFoundHtml.includes(`src="${siteAsset}"`)) throw new Error('404.html does not use the fingerprinted site script');
     const redirectScript = await readFile(manifestFile(outputPath, redirectAsset, basePath), 'utf8');
