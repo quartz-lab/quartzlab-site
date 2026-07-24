@@ -32,7 +32,7 @@ test('site config validates brand URLs, nullable socials, and static maintenance
     socials: {
       github: 'https://github.com/quartz-lab',
       youtube: 'https://www.youtube.com/@quartz-lab',
-      telegram: null,
+      telegram: 'https://t.me/svetakpop1337',
       boosty: 'https://boosty.to/quartzlab',
     },
     maintenance: { enabled: false },
